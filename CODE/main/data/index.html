@@ -38,7 +38,6 @@ button.secondary{background:#24304a;color:var(--fg)}
 .input-row{display:flex;gap:8px;align-items:center}
 .input-row input[type=text], .input-row input[type=password]{flex:1}
 input[type=text],input[type=password],input[type=number]{background:#0d1220;border:1px solid #2b3348;color:#eef1ff;padding:12px 12px;border-radius:10px;outline:none;min-width:200px}
-#togglePass{background:#1a2337;color:#cfd6ea;border:1px solid #2b3348;border-radius:10px;padding:10px 12px;cursor:pointer}
 #caps{color:#ffd54a;display:none;font-size:12px}
 .error{color:var(--bad);font-size:13px;min-height:18px}
 
@@ -121,7 +120,6 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
         <label class="label" for="pass">Contraseña <span id="caps" aria-live="polite">(Bloq Mayús activo)</span></label>
         <div class="input-row">
           <input id="pass" type="password" placeholder="igual al nombre" autocomplete="current-password" aria-required="true"/>
-          <button id="togglePass" type="button" aria-pressed="false" title="Mostrar/ocultar contraseña">👁</button>
         </div>
       </div>
       <div id="loginErr" class="error" aria-live="assertive"></div>
@@ -142,14 +140,14 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
     <header>
       <div>
         <h1 id="appTitle">FSR Live <span class="badge">dashboard</span></h1>
-        <div class="help">Conecta a tu ESP32 o usa “Mapa de calor”.</div>
+        <div class="help">Conecta a tu ESP32 o usa “Mapa”.</div>
       </div>
       <div style="display:flex;gap:10px;align-items:center">
         <div class="status" title="Estado de conexión">
           <div id="dot" class="dot" aria-hidden="true"></div>
           <div id="statusTxt" aria-live="polite">Desconectado</div>
         </div>
-        <button id="btnHeatmap" class="secondary" title="Alternar entre dashboard y mapa de calor">Mapa de calor</button>
+        <button id="btnHeatmap" class="secondary" title="Alternar entre dashboard y mapa">Mapa</button>
         <button id="btnLogout" class="secondary" aria-label="Cerrar sesión">Salir</button>
       </div>
     </header>
@@ -173,13 +171,21 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
     <!-- HEATMAP 2×2 -->
     <section id="heatmap" aria-label="Mapa 2×2 de cuadrados independientes">
       <div class="chart card">
-        <div class="label">Mapa (4 cuadrados independientes)</div>
+        <div class="label">Lecturas (matriz)</div>
+        <div class="vals-matrix">
+          <div><span>S1</span><b><span id="vS1">0.00</span> kg</b></div>
+          <div><span>S2</span><b><span id="vS2">0.00</span> kg</b></div>
+          <div><span>S3</span><b><span id="vS3">0.00</span> kg</b></div>
+          <div><span>S4</span><b><span id="vS4">0.00</span> kg</b></div>
+        </div>
+
+        <div class="label" style="margin-top:4px">Mapa (4 cuadrados independientes)</div>
         <canvas id="heat"></canvas>
-        <div class="sub" style="margin-top:8px">Cada cuadrado refleja su sensor de forma independiente. Etiquetas y valores fuera del área.</div>
+        <div class="sub" style="margin-top:8px">Cada cuadrado refleja su sensor de forma independiente. Etiquetas externas sin superposición.</div>
       </div>
     </section>
 
-    <footer style="margin-top:18px">Tip: usa “Mapa de calor” para vista compacta 2×2.</footer>
+    <footer style="margin-top:18px">Tip: usa “Mapa” para vista compacta 2×2.</footer>
   </div>
 </section>
 
@@ -211,7 +217,6 @@ const userEl = document.getElementById('user');
 const passEl = document.getElementById('pass');
 const btnLogin = document.getElementById('btnLogin');
 const loginErr = document.getElementById('loginErr');
-const togglePassBtn = document.getElementById('togglePass');
 const capsEl = document.getElementById('caps');
 
 const ipEl = document.getElementById('ip');
@@ -284,7 +289,7 @@ function drawChart(s){
 /* ===== Ingesta + suavizado ===== */
 function pushSample(s, rawVal){
   s.kg = rawVal;
-  s.vkg = s.vkg + EMA_ALPHA * (rawVal - s.vkg);
+  s.vkg = s.vkg + EMA_ALPHA * (rawVal - s.vkg); // EMA
   s.buf.push(s.vkg); if(s.buf.length>200) s.buf.shift();
   drawChart(s);
 
@@ -303,6 +308,7 @@ function pushSample(s, rawVal){
   document.getElementById(`kg-${s.id}`).textContent = s.vkg.toFixed(3);
   document.getElementById(`fill-${s.id}`).style.width = `${Math.min(s.vkg/maxKg,1)*100}%`;
 
+  // actualizar matriz
   if(vS1 && vS2 && vS3 && vS4){
     vS1.textContent = (sensors[0]?.vkg||0).toFixed(2);
     vS2.textContent = (sensors[1]?.vkg||0).toFixed(2);
@@ -350,57 +356,253 @@ function startDemo(){
 }
 function stopDemo(){ if(demoRAF){ cancelAnimationFrame(demoRAF); demoRAF=0; } }
 
-/* ===== Paleta ámbar (para mapa) ===== */
-function hslToRgb(h,s,l){ s/=100; l/=100; const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs(((h/60)%2)-1)), m=l-c/2; let r=0,g=0,b=0; if(h<60){r=c;g=x;} else if(h<120){r=x;g=c;} else if(h<180){g=c;b=x;} else if(h<240){g=x;b=c;} else if(h<300){r=x;b=c;} else {r=c;b=x;} return [Math.round((r+m)*255),Math.round((g+m)*255),Math.round((b+m)*255)]; }
-function amberRGB(t){ t=Math.max(0,Math.min(1,t)); const h=42,s=25+70*t,l=14+50*Math.pow(t,0.85); return hslToRgb(h,s,l); }
+/* ===== Paleta ámbar (monotónica) ===== */
+function hslToRgb(h,s,l){
+  s/=100; l/=100;
+  const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs(((h/60)%2)-1)), m=l-c/2;
+  let r=0,g=0,b=0;
+  if(h<60){r=c;g=x;} else if(h<120){r=x;g=c;} else if(h<180){g=c;b=x;}
+  else if(h<240){g=x;b=c;} else if(h<300){r=x;b=c;} else {r=c;b=x;}
+  return [Math.round((r+m)*255),Math.round((g+m)*255),Math.round((b+m)*255)];
+}
+// 0 → gris azulado oscuro; 1 → ámbar intenso
+function amberRGB(t){
+  t = Math.max(0, Math.min(1, t));
+  const h = 42;                     // tono ámbar
+  const s = 25 + 70*t;              // 25% → 95%
+  const l = 14 + 50*Math.pow(t,0.85); // 14% → ~64%
+  return hslToRgb(h,s,l);
+}
 
 /* ===== Heatmap (4 cuadrados independientes) ===== */
 let heatCtx = heatCvs.getContext('2d');
 let heatW=0, heatH=0, heatDirty=true, lastHeatTs=0;
-function roundRectPath(ctx, x,y,w,h,r){ const rr=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.arcTo(x+w,y,  x+w,y+h, rr); ctx.arcTo(x+w,y+h,x,y+h, rr); ctx.arcTo(x,y+h,  x,y, rr); ctx.arcTo(x,y,    x+w,y, rr); ctx.closePath(); }
-function drawTile(ctx,x,y,w,h,value,label,pos='below'){ const t=Math.max(0,Math.min(1,value/maxKg)); const [r,g,b]=amberRGB(t); ctx.save(); roundRectPath(ctx,x,y,w,h,TILE_RADIUS); ctx.fillStyle=`rgb(${r},${g},${b})`; ctx.fill(); ctx.clip(); const grd=ctx.createLinearGradient(x,y,x,y+h); grd.addColorStop(0,'rgba(255,255,255,0.10)'); grd.addColorStop(0.6,'rgba(0,0,0,0.00)'); grd.addColorStop(1,'rgba(0,0,0,0.20)'); ctx.fillStyle=grd; ctx.fillRect(x,y,w,h); ctx.restore(); ctx.strokeStyle='rgba(255,255,255,0.10)'; ctx.lineWidth=1.2; roundRectPath(ctx,x,y,w,h,TILE_RADIUS); ctx.stroke(); const fs=Math.max(16,Math.min(20,Math.round(w*0.13))); ctx.font=`700 ${fs}px system-ui`; ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.textAlign='center'; if(pos==='above'){ ctx.textBaseline='bottom'; ctx.fillText(`${label} ${value.toFixed(2)} kg`, x+w/2, y-8); } else { ctx.textBaseline='top'; ctx.fillText(`${label} ${value.toFixed(2)} kg`, x+w/2, y+h+12); } }
-function drawHeatmap(force=false){ const now=performance.now(); if(!force && now-lastHeatTs<60) return; lastHeatTs=now; heatDirty=false; const ctx=heatCtx,W=heatW,H=heatH; ctx.clearRect(0,0,W,H); const x0=HEAT_PAD, y0=HEAT_PAD+LABEL_TOP; const w=W-HEAT_PAD*2; const h=H-HEAT_PAD*2-LABEL_TOP-LABEL_BOTTOM; roundRectPath(ctx,x0,y0,w,h,HEAT_RADIUS); ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.stroke(); const gap=TILE_GAP; const tw=(w-gap)/2; const th=(h-gap)/2; const v1=sensors[0]?.vkg||0, v2=sensors[1]?.vkg||0, v3=sensors[2]?.vkg||0, v4=sensors[3]?.vkg||0; drawTile(ctx,x0,        y0,        tw,th,v1,'S1','above'); drawTile(ctx,x0+tw+gap,y0,        tw,th,v2,'S2','above'); drawTile(ctx,x0,        y0+th+gap,tw,th,v3,'S3','below'); drawTile(ctx,x0+tw+gap,y0+th+gap,tw,th,v4,'S4','below'); }
+
+function roundRectPath(ctx, x,y,w,h,r){
+  const rr = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr,y);
+  ctx.arcTo(x+w,y,  x+w,y+h, rr);
+  ctx.arcTo(x+w,y+h,x,y+h, rr);
+  ctx.arcTo(x,y+h,  x,y, rr);
+  ctx.arcTo(x,y,    x+w,y, rr);
+  ctx.closePath();
+}
+
+function drawTile(ctx, x,y, w,h, value, label, pos='below'){
+  const t = Math.max(0, Math.min(1, value/maxKg));
+  const [r,g,b] = amberRGB(t);
+
+  // base
+  ctx.save();
+  roundRectPath(ctx,x,y,w,h,TILE_RADIUS);
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fill();
+  ctx.clip();
+
+  // brillo sutil
+  const grd = ctx.createLinearGradient(x,y,x,y+h);
+  grd.addColorStop(0,'rgba(255,255,255,0.10)');
+  grd.addColorStop(0.6,'rgba(0,0,0,0.00)');
+  grd.addColorStop(1,'rgba(0,0,0,0.20)');
+  ctx.fillStyle = grd; ctx.fillRect(x,y,w,h);
+  ctx.restore();
+
+  // borde
+  ctx.strokeStyle='rgba(255,255,255,0.10)';
+  ctx.lineWidth=1.2;
+  roundRectPath(ctx,x,y,w,h,TILE_RADIUS); ctx.stroke();
+
+  // etiqueta fuera del cuadrado
+  const fs = Math.max(16, Math.min(20, Math.round(w*0.13)));
+  ctx.font = `700 ${fs}px system-ui`;
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.textAlign = 'center';
+
+  if(pos==='above'){
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`${label} ${value.toFixed(2)} kg`, x + w/2, y - 8);
+  }else{ // below
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${label} ${value.toFixed(2)} kg`, x + w/2, y + h + 12);
+  }
+}
+
+function drawHeatmap(force=false){
+  const now = performance.now();
+  if(!force && now - lastHeatTs < 60) return; // ~16 FPS
+  lastHeatTs = now; heatDirty=false;
+
+  const ctx = heatCtx, W = heatW, H = heatH; ctx.clearRect(0,0,W,H);
+
+  const x0 = HEAT_PAD, y0 = HEAT_PAD + LABEL_TOP;
+  const w = W - HEAT_PAD*2;
+  const h = H - HEAT_PAD*2 - LABEL_TOP - LABEL_BOTTOM;
+
+  // marco contenedor
+  roundRectPath(ctx, x0, y0, w, h, HEAT_RADIUS);
+  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.stroke();
+
+  const gap = TILE_GAP;
+  const tw = (w - gap)/2;         // 2 columnas
+  const th = (h - gap)/2;         // 2 filas
+
+  const v1 = sensors[0]?.vkg||0;
+  const v2 = sensors[1]?.vkg||0;
+  const v3 = sensors[2]?.vkg||0;
+  const v4 = sensors[3]?.vkg||0;
+
+  // fila superior (etiquetas arriba)
+  drawTile(ctx, x0,          y0,          tw, th, v1, 'S1', 'above');
+  drawTile(ctx, x0+tw+gap,   y0,          tw, th, v2, 'S2', 'above');
+
+  // fila inferior (etiquetas abajo)
+  drawTile(ctx, x0,          y0+th+gap,   tw, th, v3, 'S3', 'below');
+  drawTile(ctx, x0+tw+gap,   y0+th+gap,   tw, th, v4, 'S4', 'below');
+}
 
 /* ===== Resize (charts + heatmap) ===== */
 function resizeAllCanvases(){
-  sensors.forEach(s=>{ if(!s.cvs) return; const parentW=Math.floor(s.cvs.parentElement.clientWidth); const cssW=Math.max(320,Math.min(CHART_MAX_PX,parentW)); const cssH=Math.round(cssW*0.4); const {ctx,W,H}=setupCanvas(s.cvs,cssW,cssH); s.ctx=ctx; s.W=W; s.H=H; drawChart(s); });
-  if(heatCvs){ const wrapW=Math.floor(heatCvs.parentElement.clientWidth); const cssW=Math.max(300,Math.min(HEAT_MAX_PX,wrapW)); const cssH=cssW+LABEL_TOP+LABEL_BOTTOM+12; const obj=setupCanvas(heatCvs,cssW,cssH); heatCtx=obj.ctx; heatW=obj.W; heatH=obj.H; heatCvs.style.margin='0 auto'; if(currentView==='heatmap') drawHeatmap(true); }
+  // charts
+  sensors.forEach(s=>{
+    if(!s.cvs) return;
+    const parentW = Math.floor(s.cvs.parentElement.clientWidth);
+    const cssW = Math.max(320, Math.min(CHART_MAX_PX, parentW));
+    const cssH = Math.round(cssW * 0.4);
+    const {ctx,W,H} = setupCanvas(s.cvs, cssW, cssH);
+    s.ctx=ctx; s.W=W; s.H=H; drawChart(s);
+  });
+
+  // mapa cuadrado con altura extra para etiquetas
+  if(heatCvs){
+    const wrapW = Math.floor(heatCvs.parentElement.clientWidth);
+    const cssW = Math.max(300, Math.min(HEAT_MAX_PX, wrapW));
+    const cssH = cssW + LABEL_TOP + LABEL_BOTTOM + 12;
+    const obj = setupCanvas(heatCvs, cssW, cssH);
+    heatCtx = obj.ctx; heatW = obj.W; heatH = obj.H;
+    heatCvs.style.margin = '0 auto';
+    if(currentView==='heatmap') drawHeatmap(true);
+  }
 }
 
-/* ===== Loop ===== */
-(function heatLoop(){ requestAnimationFrame(heatLoop); if(currentView==='heatmap' && heatDirty) drawHeatmap(); })();
+/* ===== Loop de mapa ===== */
+(function heatLoop(){
+  requestAnimationFrame(heatLoop);
+  if(currentView==='heatmap' && heatDirty) drawHeatmap();
+})();
 function markHeatDirty(){ if(currentView==='heatmap') heatDirty = true; }
 
 /* ===== Vistas ===== */
-function showDashboard(){ cardsEl.style.display=''; chartsEl.style.display=''; heatmapSection.style.display='none'; btnHeatmap.textContent='Mapa'; currentView='dashboard'; }
-function showHeatmap(){ cardsEl.style.display='none'; chartsEl.style.display='none'; heatmapSection.style.display='block'; btnHeatmap.textContent='Volver al dashboard'; currentView='heatmap'; resizeAllCanvases(); drawHeatmap(true); }
+function showDashboard(){
+  cardsEl.style.display=''; chartsEl.style.display=''; heatmapSection.style.display='none';
+  btnHeatmap.textContent='Mapa'; currentView='dashboard';
+}
+function showHeatmap(){
+  cardsEl.style.display='none'; chartsEl.style.display='none'; heatmapSection.style.display='block';
+  btnHeatmap.textContent='Volver al dashboard'; currentView='heatmap';
+  resizeAllCanvases(); drawHeatmap(true);
+}
 
-/* ===== Portada FX (blobs suaves) ===== */
-let fxCtx=null, fxW=0, fxH=0, fxRAF=0, fxActive=true; const BLOBS=5; const blobs=[];
-function setupFX(){ if(!bgfx) return; const rect=bgfx.getBoundingClientRect(); bgfx.width=Math.round(rect.width*DPR); bgfx.height=Math.round(rect.height*DPR); bgfx.style.width=rect.width+'px'; bgfx.style.height=rect.height+'px'; fxCtx=bgfx.getContext('2d'); fxCtx.setTransform(DPR,0,0,DPR,0,0); fxW=rect.width; fxH=rect.height; blobs.length=0; for(let i=0;i<BLOBS;i++){ blobs.push({ x:Math.random()*fxW, y:Math.random()*fxH, r: 120+Math.random()*180, vx:(Math.random()*2-1)*0.25, vy:(Math.random()*2-1)*0.25, hue: i%2? 210:42, sat:i%2? 70:90, alpha: i%2? 0.20:0.24 }); } }
-function tickFX(){ if(!fxActive||!fxCtx) return; fxRAF=requestAnimationFrame(tickFX); fxCtx.clearRect(0,0,fxW,fxH); fxCtx.globalCompositeOperation='lighter'; for(const b of blobs){ const grd=fxCtx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r); const c1=`hsla(${b.hue} ${b.sat}% 55% / ${b.alpha})`; const c0=`hsla(${b.hue} ${b.sat}% 55% / 0)`; grd.addColorStop(0,c1); grd.addColorStop(1,c0); fxCtx.fillStyle=grd; fxCtx.beginPath(); fxCtx.arc(b.x,b.y,b.r,0,Math.PI*2); fxCtx.fill(); b.x+=b.vx; b.y+=b.vy; if(b.x<-50||b.x>fxW+50) b.vx*=-1; if(b.y<-50||b.y>fxH+50) b.vy*=-1; }
-  fxCtx.globalCompositeOperation='source-over'; }
+/* ===== Portada FX (blobs pulsantes siempre activos) ===== */
+let fxCtx=null, fxW=0, fxH=0, fxRAF=0; const BLOBS=7; const blobs=[];
+function setupFX(){
+  if(!bgfx) return;
+  const rect=bgfx.getBoundingClientRect();
+  bgfx.width=Math.round(rect.width*DPR);
+  bgfx.height=Math.round(rect.height*DPR);
+  bgfx.style.width=rect.width+'px';
+  bgfx.style.height=rect.height+'px';
+  fxCtx=bgfx.getContext('2d');
+  fxCtx.setTransform(DPR,0,0,DPR,0,0);
+  fxW=rect.width; fxH=rect.height;
+  blobs.length=0;
+  for(let i=0;i<BLOBS;i++){
+    blobs.push({
+      x:Math.random()*fxW, y:Math.random()*fxH,
+      baseR: 140+Math.random()*200, ampR: 40+Math.random()*80,
+      vx:(Math.random()*2-1)*0.15, vy:(Math.random()*2-1)*0.15,
+      hue: i%2? 210:42, sat:i%2? 70:90,
+      baseA: 0.05 + Math.random()*0.10,
+      ampA: 0.08 + Math.random()*0.20,
+      phase: Math.random()*Math.PI*2,
+      speed: 0.006 + Math.random()*0.010
+    });
+  }
+}
+function tickFX(){
+  fxRAF=requestAnimationFrame(tickFX);
+  if(!fxCtx) return;
+  fxCtx.clearRect(0,0,fxW,fxH);
+  fxCtx.globalCompositeOperation='lighter';
+  for(const b of blobs){
+    b.phase += b.speed;
+    const a = Math.max(0, Math.min(1, b.baseA + b.ampA*(0.5+0.5*Math.sin(b.phase))));
+    const r = Math.max(20, b.baseR + b.ampR*(0.5+0.5*Math.sin(b.phase*0.9+0.7)));
+    const grd=fxCtx.createRadialGradient(b.x,b.y,0,b.x,b.y,r);
+    const c1=`hsla(${b.hue} ${b.sat}% 55% / ${a})`;
+    const c0=`hsla(${b.hue} ${b.sat}% 55% / 0)`;
+    grd.addColorStop(0,c1); grd.addColorStop(1,c0);
+    fxCtx.fillStyle=grd; fxCtx.beginPath(); fxCtx.arc(b.x,b.y,r,0,Math.PI*2); fxCtx.fill();
+    b.x+=b.vx; b.y+=b.vy; if(b.x<-100||b.x>fxW+100) b.vx*=-1; if(b.y<-100||b.y>fxH+100) b.vy*=-1;
+  }
+  fxCtx.globalCompositeOperation='source-over';
+}
 window.addEventListener('resize', ()=>{ if(landing.style.display!=='none'){ setupFX(); } resizeAllCanvases(); });
 
 /* ===== Navegación ===== */
-function gotoApp(){ fxActive=false; cancelAnimationFrame(fxRAF); landing.style.display='none'; app.style.display='block'; if(LOGO_PATH){ cornerLogo.src=LOGO_PATH; cornerLogo.style.display='block'; } renderUI(); const now=performance.now(); sensors.forEach(s=>{ s.lastHzTs=now; s.samples=0; s.min=Infinity; s.max=-Infinity; s.buf.fill(0); s.kg=0; s.vkg=0; document.getElementById(`kg-${s.id}`).textContent='0.000'; document.getElementById(`fill-${s.id}`).style.width='0%'; document.getElementById(`min-${s.id}`).textContent='0.000'; document.getElementById(`max-${s.id}`).textContent='0.000'; document.getElementById(`hz-${s.id}`).textContent='0.0'; drawChart(s); }); showDashboard(); }
-function goLogout(){ disconnectWS(); stopDemo(); app.style.display='none'; landing.style.display='grid'; cornerLogo.style.display='none'; userEl.value=''; passEl.value=''; loginErr.textContent=''; loginCard.style.display='flex'; fxActive=true; setupFX(); tickFX(); }
+function gotoApp(){
+  landing.style.display='none'; app.style.display='block';
+  if(LOGO_PATH){ cornerLogo.src=LOGO_PATH; cornerLogo.style.display='block'; }
+  renderUI();
+  const now = performance.now();
+  sensors.forEach(s=>{
+    s.lastHzTs=now; s.samples=0; s.min=Infinity; s.max=-Infinity; s.buf.fill(0);
+    s.kg=0; s.vkg=0;
+    document.getElementById(`kg-${s.id}`).textContent='0.000';
+    document.getElementById(`fill-${s.id}`).style.width='0%';
+    document.getElementById(`min-${s.id}`).textContent='0.000';
+    document.getElementById(`max-${s.id}`).textContent='0.000';
+    document.getElementById(`hz-${s.id}`).textContent='0.0';
+    drawChart(s);
+  });
+  showDashboard();
+}
+function goLogout(){
+  disconnectWS(); stopDemo();
+  app.style.display='none'; landing.style.display='grid'; cornerLogo.style.display='none';
+  userEl.value=''; passEl.value=''; loginErr.textContent=''; loginCard.style.display='flex';
+  // asegurar FX activo al volver
+  setupFX();
+  if(!fxRAF) tickFX();
+}
 
 /* ===== Eventos UI ===== */
 btnShowLogin.onclick = ()=>{ loginCard.style.display='flex'; userEl.focus(); };
 btnDemo.onclick = ()=>{ loginCard.style.display='none'; gotoApp(); startDemo(); setStatus(true,'Demo'); };
-btnLogin.onclick = ()=>{ const u=userEl.value.trim(), p=passEl.value; loginErr.textContent=''; if(!VALID_USERS.has(u)){ loginErr.textContent='Usuario no autorizado.'; return; } if(p!==u){ loginErr.textContent='Contraseña inválida.'; return; } gotoApp(); };
+btnLogin.onclick = ()=>{
+  const u=userEl.value.trim(), p=passEl.value; loginErr.textContent='';
+  if(!VALID_USERS.has(u)){ loginErr.textContent='Usuario no autorizado.'; return; }
+  if(p!==u){ loginErr.textContent='Contraseña inválida.'; return; }
+  gotoApp();
+};
 
-// Mostrar/ocultar contraseña + CapsLock
-if(togglePassBtn){ togglePassBtn.onclick=()=>{ const show = passEl.type==='password'; passEl.type = show? 'text':'password'; togglePassBtn.setAttribute('aria-pressed', show?'true':'false'); }; }
-passEl.addEventListener('keyup', (e)=>{ const on = e.getModifierState && e.getModifierState('CapsLock'); capsEl.style.display = on? 'inline' : 'none'; if(e.key==='Enter'){ btnLogin.click(); } });
+// CapsLock + submit con Enter
+passEl.addEventListener('keyup', (e)=>{
+  const on = e.getModifierState && e.getModifierState('CapsLock');
+  capsEl.style.display = on? 'inline' : 'none';
+  if(e.key==='Enter') btnLogin.click();
+});
 userEl.addEventListener('keyup', (e)=>{ if(e.key==='Enter'){ passEl.focus(); } });
 
 btnHeatmap.onclick = ()=>{ (currentView==='dashboard') ? showHeatmap() : showDashboard(); };
 btnConnect.onclick=()=>{ stopDemo(); connectWS(); };
 btnDisconnect.onclick=()=>{ disconnectWS(); };
 document.getElementById('btnLogout').onclick = goLogout;
-maxkgEl.addEventListener('input', ()=>{ const v=Math.max(0.1, parseFloat(maxkgEl.value)||10); maxKg = v; localStorage.setItem('maxKg', v.toFixed(1)); sensors.forEach(drawChart); if(currentView==='heatmap') drawHeatmap(true); });
+maxkgEl.addEventListener('input', ()=>{
+  const v=Math.max(0.1, parseFloat(maxkgEl.value)||10);
+  maxKg = v; localStorage.setItem('maxKg', v.toFixed(1));
+  sensors.forEach(drawChart); if(currentView==='heatmap') drawHeatmap(true);
+});
 
 /* ===== Init ===== */
 function renderUI(){
@@ -428,8 +630,9 @@ function renderUI(){
   resizeAllCanvases();
 }
 
-// Arranque portada FX
-setupFX(); tickFX();
+// Arranque portada FX continuo
+setupFX();
+tickFX();
 </script>
 </body>
 </html>
