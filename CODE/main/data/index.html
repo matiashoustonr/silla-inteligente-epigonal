@@ -5,59 +5,87 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>FSR Live • Austranet × Epigonal</title>
 <style>
-:root{ --bg:#0f1220; --fg:#eef1ff; --muted:#9aa3b2; --accent:#6aa6ff; --card:#171c2b; --bar:#2a3248; --good:#33d69f; --bad:#ef5f6b; }
-*{box-sizing:border-box} html,body{height:100%} body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,Segoe UI,Roboto}
+:root{
+  --bg:#0f1220; --fg:#eef1ff; --muted:#9aa3b2; --accent:#6aa6ff; --card:#171c2b;
+  --bar:#2a3248; --good:#33d69f; --bad:#ef5f6b;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,Segoe UI,Roboto}
 
 /* LANDING */
-#landing{min-height:100dvh;display:grid;place-items:center;padding:36px}
-.hero{max-width:1000px;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px}
+#landing{min-height:100dvh;display:grid;place-items:center;padding:36px;position:relative;overflow:hidden}
+#bgfx{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero{position:relative;z-index:1;max-width:1000px;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px}
 .brandline{display:inline-block;font-weight:900;letter-spacing:.6px;line-height:1.05;background:linear-gradient(90deg,#7ab8ff,#c1c9ff 30%,#7ab8ff 70%,#c1c9ff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 10px 30px rgba(0,0,0,.35))}
 .brandTop{font-size:clamp(28px,6vw,56px)}
 .brandMid{font-size:clamp(18px,3vw,24px);color:var(--muted);margin-top:-6px}
-.card-landing{background:linear-gradient(180deg,rgba(23,28,43,.9),rgba(23,28,43,.65));border:1px solid #293048;border-radius:20px;padding:18px;display:inline-flex;gap:10px;align-items:center}
+.card-landing{background:linear-gradient(180deg,rgba(23,28,43,.85),rgba(23,28,43,.55));backdrop-filter:blur(6px);border:1px solid #293048;border-radius:20px;padding:18px;display:inline-flex;gap:10px;align-items:center}
 .card-landing .dot{width:8px;height:8px;border-radius:999px;background:var(--good)}
 .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
-button{background:var(--accent);color:#0b1020;border:0;padding:12px 18px;border-radius:14px;font-weight:700;cursor:pointer;transition:filter .15s}
+button{background:var(--accent);color:#0b1020;border:0;padding:12px 18px;border-radius:14px;font-weight:700;cursor:pointer;transition:transform .15s ease, filter .15s ease}
 button:hover{filter:brightness(1.05)}
+button:active{transform:translateY(1px)}
 button.secondary{background:#24304a;color:var(--fg)}
 .small{font-size:13px;color:var(--muted)}
 .footer-landing{position:fixed;left:0;right:0;bottom:14px;text-align:center;color:var(--muted);font-size:12px;padding:0 10px}
 
 /* LOGIN */
-#loginCard{display:none;gap:10px;flex-direction:column;align-items:stretch;width:min(420px,92vw);background:var(--card);border:1px solid #293048;border-radius:16px;padding:16px;margin-top:6px}
+#loginCard{display:none;gap:12px;flex-direction:column;align-items:stretch;width:min(440px,92vw);background:linear-gradient(180deg,rgba(23,28,43,.9),rgba(23,28,43,.7));backdrop-filter:blur(6px);border:1px solid #293048;border-radius:16px;padding:18px;margin-top:10px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
 #loginCard h3{margin:0 0 6px}
 .input{display:flex;flex-direction:column;gap:6px;text-align:left}
 .label{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:12px}
-input[type=text],input[type=password],input[type=number]{background:#0d1220;border:1px solid #2b3348;color:var(--fg);padding:10px 12px;border-radius:10px;outline:none;min-width:200px}
+.input-row{display:flex;gap:8px;align-items:center}
+.input-row input[type=text], .input-row input[type=password]{flex:1}
+input[type=text],input[type=password],input[type=number]{background:#0d1220;border:1px solid #2b3348;color:#eef1ff;padding:12px 12px;border-radius:10px;outline:none;min-width:200px}
+#togglePass{background:#1a2337;color:#cfd6ea;border:1px solid #2b3348;border-radius:10px;padding:10px 12px;cursor:pointer}
+#caps{color:#ffd54a;display:none;font-size:12px}
 .error{color:var(--bad);font-size:13px;min-height:18px}
 
 /* APP */
 #app{display:none}
-.container{max-width:1000px;margin:36px auto;padding:0 16px}
+.container{max-width:1200px;margin:36px auto;padding:0 16px}
 header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap}
 h1{font-size:22px;margin:0;color:#fff;letter-spacing:.3px}
 .badge{font-size:12px;color:var(--muted)}
 .panel{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--card);padding:12px;border-radius:14px}
-.toggle{display:flex;align-items:center;gap:8px}
-.toggle input{accent-color:var(--accent);width:18px;height:18px}
 .help{color:var(--muted);font-size:13px}
-.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:16px}
-.card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-.value{font-size:48px;font-weight:800}
-.sub{color:var(--muted);margin-top:6px}
-.bar{height:18px;background:var(--bar);border-radius:999px;overflow:hidden;margin-top:6px}
-.fill{height:100%;width:0%;background:linear-gradient(90deg,#74d0ff,#6aa6ff);transition:width .12s}
-.kpis{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
-.kpi{background:#12182a;border:1px solid #262f47;border-radius:12px;padding:10px 12px;min-width:140px}
-.kpi .v{font-weight:700}
-.chart{background:var(--card);border-radius:16px;padding:12px;margin-top:16px}
-canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2d}
-.status{display:flex;align-items:center;gap:8px}
-.dot{width:10px;height:10px;border-radius:999px;background:#777}
-.dot.ok{background:var(--good)} .dot.err{background:var(--bad)}
-footer{color:var(--muted);text-align:center;margin:20px 0 10px}
 
-/* LOGO ESQUINA */
+/* Estado global (header) */
+.status{display:flex;align-items:center;gap:8px;background:#12182a;border:1px solid #262f47;border-radius:10px;padding:6px 10px;font-size:13px}
+.dot{width:10px;height:10px;border-radius:999px;background:var(--bad)}
+.dot.ok{background:var(--good)}
+
+/* 2×2 grids */
+.grid2x2{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:16px}
+@media (max-width: 820px){ .grid2x2{grid-template-columns:1fr} }
+
+.card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.value{font-size:42px;font-weight:800}
+.sub{color:var(--muted);margin-top:6px}
+.bar{height:16px;background:var(--bar);border-radius:999px;overflow:hidden;margin-top:6px}
+.fill{height:100%;width:0%;background:linear-gradient(90deg,#74d0ff,#6aa6ff);transition:width .12s}
+.row{display:flex;justify-content:space-between;gap:8px;margin-top:8px}
+.kpi{background:#12182a;border:1px solid #262f47;border-radius:10px;padding:6px 10px;font-size:13px}
+.kpi b{font-weight:700}
+
+/* charts */
+.chart{background:var(--card);border-radius:16px;padding:12px}
+.chart .label{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:12px;margin-bottom:6px}
+canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2d}
+.chart canvas{margin:0 auto;}
+
+/* ===== VAL MATRIX (arriba del mapa) ===== */
+.vals-matrix{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:6px 0 10px}
+.vals-matrix div{background:#12182a;border:1px solid #262f47;border-radius:10px;padding:10px 12px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.vals-matrix span{ color:var(--muted); font-weight:600 }
+.vals-matrix b{ font-size:18px }
+
+/* heatmap */
+#heatmap{display:none;margin-top:16px}
+#heat{display:block;width:100%;height:auto;background:#151b2d;border-radius:14px;border:1px solid #262f47;margin:0 auto}
+
+/* LOGO */
 #cornerLogo{position:fixed;right:18px;top:18px;width:120px;height:auto;opacity:.95;filter:drop-shadow(0 6px 20px rgba(0,0,0,.35));display:none;pointer-events:none}
 @media (max-width:560px){ #cornerLogo{width:90px} }
 </style>
@@ -66,32 +94,38 @@ footer{color:var(--muted);text-align:center;margin:20px 0 10px}
 
 <!-- PORTADA -->
 <section id="landing">
+  <canvas id="bgfx" aria-hidden="true"></canvas>
   <div class="hero">
     <div class="brandline brandTop">Austranet × Epigonal</div>
     <div class="brandline brandMid">colaboración para medición en tiempo real</div>
 
-    <div class="card-landing">
-      <div class="dot"></div>
+    <div class="card-landing" aria-live="polite">
+      <div class="dot" aria-hidden="true"></div>
       <div class="small">Listo para conectar con tu ESP32 (WebSocket)</div>
     </div>
 
     <div class="actions">
-      <button id="btnShowLogin">Entrar</button>
-      <button id="btnDemo" class="secondary">Ver demo</button>
+      <button id="btnShowLogin" aria-label="Abrir formulario de inicio de sesión">Entrar</button>
+      <button id="btnDemo" class="secondary" aria-label="Ver demostración en vivo">Ver demo</button>
     </div>
 
-    <div id="loginCard">
-      <h3>Inicio de sesión</h3>
+    <div id="loginCard" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+      <h3 id="loginTitle">Inicio de sesión</h3>
       <div class="input">
-        <div class="label">Usuario</div>
-        <input id="user" type="text" placeholder="Matias / Manuel / Gabriel / Gabriela" autocomplete="username"/>
+        <label class="label" for="user">Usuario</label>
+        <div class="input-row">
+          <input id="user" type="text" placeholder="Matias / Manuel / Gabriel / Gabriela" autocomplete="username" aria-required="true"/>
+        </div>
       </div>
       <div class="input">
-        <div class="label">Contraseña</div>
-        <input id="pass" type="password" placeholder="igual al nombre" autocomplete="current-password"/>
+        <label class="label" for="pass">Contraseña <span id="caps" aria-live="polite">(Bloq Mayús activo)</span></label>
+        <div class="input-row">
+          <input id="pass" type="password" placeholder="igual al nombre" autocomplete="current-password" aria-required="true"/>
+          <button id="togglePass" type="button" aria-pressed="false" title="Mostrar/ocultar contraseña">👁</button>
+        </div>
       </div>
-      <div id="loginErr" class="error"></div>
-      <button id="btnLogin">Ingresar</button>
+      <div id="loginErr" class="error" aria-live="assertive"></div>
+      <button id="btnLogin" aria-label="Ingresar">Ingresar</button>
     </div>
 
     <div class="small">Podrás cambiar la IP y el rango visual dentro del panel.</div>
@@ -103,76 +137,72 @@ footer{color:var(--muted);text-align:center;margin:20px 0 10px}
 <img id="cornerLogo" alt="Logo Austranet"/>
 
 <!-- APP -->
-<section id="app">
+<section id="app" aria-labelledby="appTitle">
   <div class="container">
     <header>
       <div>
-        <h1>FSR Live <span class="badge">dashboard</span></h1>
-        <div class="help">Conecta a tu ESP32 o usa “Demo”.</div>
+        <h1 id="appTitle">FSR Live <span class="badge">dashboard</span></h1>
+        <div class="help">Conecta a tu ESP32 o usa “Mapa de calor”.</div>
       </div>
       <div style="display:flex;gap:10px;align-items:center">
-        <div class="status"><div id="dot" class="dot"></div><div id="statusTxt">Desconectado</div></div>
-        <button id="btnLogout" class="secondary">Salir</button>
+        <div class="status" title="Estado de conexión">
+          <div id="dot" class="dot" aria-hidden="true"></div>
+          <div id="statusTxt" aria-live="polite">Desconectado</div>
+        </div>
+        <button id="btnHeatmap" class="secondary" title="Alternar entre dashboard y mapa de calor">Mapa de calor</button>
+        <button id="btnLogout" class="secondary" aria-label="Cerrar sesión">Salir</button>
       </div>
     </header>
 
-    <div class="panel">
-      <input id="ip" type="text" placeholder="IP de la ESP (ej: 172.20.10.5)"/>
-      <button id="btnConnect">Conectar</button>
-      <button id="btnDisconnect" class="secondary" disabled>Desconectar</button>
-      <div class="toggle">
-        <input id="demo" type="checkbox"/>
-        <label for="demo">Demo</label>
-      </div>
-      <div class="right" style="display:flex;gap:10px;align-items:center">
-        <label class="help">Max kg:</label>
-        <input id="maxkg" type="number" step="0.1" min="0.1" value="10.0" style="width:100px"/>
-        <span class="help" id="helloUser"></span>
+    <div class="panel" role="region" aria-label="Controles de conexión">
+      <input id="ip" type="text" placeholder="IP de la ESP (ej: 172.20.10.5)" inputmode="numeric" pattern="^\\d+\\.\\d+\\.\\d+\\.\\d+$" aria-label="Dirección IP de la ESP32"/>
+      <button id="btnConnect" aria-label="Conectar a la ESP32">Conectar</button>
+      <button id="btnDisconnect" class="secondary" disabled aria-label="Desconectar de la ESP32">Desconectar</button>
+      <div class="toggle" style="margin-left:auto;gap:12px">
+        <label class="help" for="maxkg">Max kg (escala visual):</label>
+        <input id="maxkg" type="number" step="0.1" min="0.1" value="10.0" style="width:100px" aria-label="Escala visual máximo en kilogramos"/>
       </div>
     </div>
 
-    <div class="grid">
-      <div class="card">
-        <div class="label">Peso</div>
-        <div id="kg" class="value">0.000</div>
-        <div class="sub">kg actuales</div>
-      </div>
-      <div class="card">
-        <div class="label">Nivel</div>
-        <div class="bar"><div id="fill" class="fill"></div></div>
-        <div id="pct" class="sub">0%</div>
-      </div>
-      <div class="card">
-        <div class="label">Indicadores</div>
-        <div class="kpis">
-          <div class="kpi"><div class="help">Mín</div><div id="min" class="v">0.000 kg</div></div>
-          <div class="kpi"><div class="help">Máx</div><div id="max" class="v">0.000 kg</div></div>
-          <div class="kpi"><div class="help">Muestras/s</div><div id="hz" class="v">0.0</div></div>
-        </div>
-      </div>
-    </div>
+    <!-- INDICADORES 2×2 -->
+    <div id="cards" class="grid2x2"></div>
 
-    <div class="chart card">
-      <div class="label">Histórico (~20 s)</div>
-      <canvas id="chart" width="900" height="250"></canvas>
-    </div>
+    <!-- CHARTS 2×2 -->
+    <div id="charts" class="grid2x2"></div>
 
-    <footer>Tip: activa “Demo” para probar diseño sin hardware.</footer>
+    <!-- HEATMAP 2×2 -->
+    <section id="heatmap" aria-label="Mapa 2×2 de cuadrados independientes">
+      <div class="chart card">
+        <div class="label">Mapa (4 cuadrados independientes)</div>
+        <canvas id="heat"></canvas>
+        <div class="sub" style="margin-top:8px">Cada cuadrado refleja su sensor de forma independiente. Etiquetas y valores fuera del área.</div>
+      </div>
+    </section>
+
+    <footer style="margin-top:18px">Tip: usa “Mapa de calor” para vista compacta 2×2.</footer>
   </div>
 </section>
 
 <script>
-/* ===== Ruta del logo ===== */
+/* ===== Const/UI ===== */
 const LOGO_PATH = "assets/Austranet-Logo.png";
-
-/* ===== Usuarios válidos (password = igual al nombre, exacto) ===== */
 const VALID_USERS = new Set(["Matias","Manuel","Gabriel","Gabriela"]);
+const EMA_ALPHA = 0.25;                         // suavizado visual
+const DPR = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+const HEAT_MAX_PX  = 720;                       // tope de tamaño del mapa
+const CHART_MAX_PX = 640;                       // tope por chart
+const HEAT_PAD = 14;                            // padding externo
+const HEAT_RADIUS = 14;                         // radio del contenedor
+const TILE_GAP = 14;                            // separación entre tiles
+const TILE_RADIUS = 14;                         // radio de cada tile
+const LABEL_TOP = 30;                           // espacio para etiquetas de la fila superior
+const LABEL_BOTTOM = 54;                        // espacio para etiquetas de la fila inferior
 
-/* ===== Refs ===== */
+/* Refs DOM */
 const landing = document.getElementById('landing');
+const bgfx = document.getElementById('bgfx');
 const app = document.getElementById('app');
 const cornerLogo = document.getElementById('cornerLogo');
-const helloUser = document.getElementById('helloUser');
 
 const btnShowLogin = document.getElementById('btnShowLogin');
 const btnDemo = document.getElementById('btnDemo');
@@ -181,110 +211,225 @@ const userEl = document.getElementById('user');
 const passEl = document.getElementById('pass');
 const btnLogin = document.getElementById('btnLogin');
 const loginErr = document.getElementById('loginErr');
+const togglePassBtn = document.getElementById('togglePass');
+const capsEl = document.getElementById('caps');
 
 const ipEl = document.getElementById('ip');
 const btnConnect = document.getElementById('btnConnect');
 const btnDisconnect = document.getElementById('btnDisconnect');
-const demoEl = document.getElementById('demo');
 const maxkgEl = document.getElementById('maxkg');
-const dot = document.getElementById('dot');
 const statusTxt = document.getElementById('statusTxt');
+const dot = document.getElementById('dot');
 
-const kgEl = document.getElementById('kg');
-const fill = document.getElementById('fill');
-const pctEl = document.getElementById('pct');
-const minEl = document.getElementById('min');
-const maxEl = document.getElementById('max');
-const hzEl  = document.getElementById('hz');
+const cardsEl = document.getElementById('cards');
+const chartsEl = document.getElementById('charts');
+const heatmapSection = document.getElementById('heatmap');
+const btnHeatmap = document.getElementById('btnHeatmap');
+const heatCvs = document.getElementById('heat');
 
-const cvs = document.getElementById('chart');
-const ctx = cvs.getContext('2d');
-const W = cvs.width, H = cvs.height;
-const BUF_LEN = 200; let buf = new Array(BUF_LEN).fill(0);
+const vS1 = document.getElementById('vS1');
+const vS2 = document.getElementById('vS2');
+const vS3 = document.getElementById('vS3');
+const vS4 = document.getElementById('vS4');
 
-let ws = null, timerDemo = null;
+/* Estado */
+let currentView = 'dashboard'; // 'dashboard' | 'heatmap'
+const N = 4;
+let ws = null, demoRAF = 0;
 let maxKg = parseFloat(localStorage.getItem('maxKg') || maxkgEl.value);
-let ipSaved = localStorage.getItem('espIp') || ''; // solo guardamos IP y maxKg
-ipEl.value = ipSaved;
+if (!isFinite(maxKg) || maxKg <= 0) maxKg = 10.0;
 maxkgEl.value = maxKg.toFixed(1);
+const savedIp = localStorage.getItem('espIp'); if (savedIp) ipEl.value = savedIp;
 
-let minSeen = Infinity, maxSeen = -Infinity;
-let samples = 0, lastHzTs = 0;
-let demoAfterLogin = false;
+/* Sensores + buffers */
+const sensors = Array.from({length:N}).map((_,i)=>({
+  id:i, label:`S${i+1}`, kg:0, vkg:0,
+  min:Infinity, max:-Infinity, samples:0, lastHzTs:0,
+  buf:new Array(200).fill(0), W:0,H:0, ctx:null, cvs:null
+}));
 
-/* ===== Gráfico y UI ===== */
-function draw(){
+function setStatus(ok,msg){
+  dot.className = 'dot' + (ok ? ' ok' : '');
+  statusTxt.textContent = msg || (ok?'Conectado':'Desconectado');
+  btnConnect.disabled = ok; btnDisconnect.disabled = !ok;
+}
+
+/* ===== Canvas helper ===== */
+function setupCanvas(cvs, cssW, cssH){
+  cvs.style.width = cssW + 'px';
+  cvs.style.height = cssH + 'px';
+  cvs.width  = Math.round(cssW * DPR);
+  cvs.height = Math.round(cssH * DPR);
+  const ctx = cvs.getContext('2d');
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  return {ctx, W: cssW, H: cssH};
+}
+
+/* ===== Charts ===== */
+function drawChart(s){
+  const {ctx,W,H,buf} = s; if(!ctx) return;
   ctx.clearRect(0,0,W,H);
-  ctx.globalAlpha=.15; ctx.strokeStyle='#9aa3b2';
-  for(let i=1;i<5;i++){ const y=H*i/5; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  ctx.globalAlpha=.15; ctx.strokeStyle='#9aa3b2'; ctx.lineWidth=1;
+  for(let i=1;i<5;i++){ const y=H*i/5; ctx.beginPath(); ctx.moveTo(0,y+.5); ctx.lineTo(W,y+.5); ctx.stroke(); }
   ctx.globalAlpha=1;
-  const step=W/(BUF_LEN-1); ctx.beginPath();
-  for(let i=0;i<BUF_LEN;i++){ const v=Math.max(0,Math.min(1,buf[i]/maxKg)); const x=i*step, y=H-v*H; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  const step = W/(buf.length-1); ctx.beginPath();
+  for(let i=0;i<buf.length;i++){
+    const v = Math.max(0, Math.min(1, buf[i]/maxKg));
+    const x = i*step, y = H - v*H;
+    if(i){ ctx.lineTo(x,y); } else { ctx.moveTo(x,y); }
+  }
   ctx.lineWidth=2; ctx.strokeStyle='#6aa6ff'; ctx.stroke();
 }
-function push(v){
-  buf.push(v); if(buf.length>BUF_LEN) buf.shift(); draw();
-  if(v<minSeen) minSeen=v; if(v>maxSeen) maxSeen=v;
-  minEl.textContent=`${minSeen.toFixed(3)} kg`; maxEl.textContent=`${maxSeen.toFixed(3)} kg`;
-  const now=performance.now(); samples++; if(now-lastHzTs>=1000){ hzEl.textContent=(samples/((now-lastHzTs)/1000)).toFixed(1); samples=0; lastHzTs=now; }
-}
-function updateUI(val){
-  kgEl.textContent=val.toFixed(3);
-  const p=Math.min(val/maxKg,1)*100;
-  fill.style.width=`${p.toFixed(1)}%`; pctEl.textContent=`${p.toFixed(0)}%`;
-  push(val);
-}
-function setStatus(ok,msg){ dot.className='dot '+(ok?'ok':''); statusTxt.textContent=msg|| (ok?'Conectado':'Desconectado'); btnConnect.disabled=ok; btnDisconnect.disabled=!ok; }
 
-/* ===== WS & Demo ===== */
+/* ===== Ingesta + suavizado ===== */
+function pushSample(s, rawVal){
+  s.kg = rawVal;
+  s.vkg = s.vkg + EMA_ALPHA * (rawVal - s.vkg);
+  s.buf.push(s.vkg); if(s.buf.length>200) s.buf.shift();
+  drawChart(s);
+
+  if(s.vkg < s.min) s.min = s.vkg;
+  if(s.vkg > s.max) s.max = s.vkg;
+  document.getElementById(`min-${s.id}`).textContent = s.min.toFixed(3);
+  document.getElementById(`max-${s.id}`).textContent = s.max.toFixed(3);
+
+  s.samples++; const now = performance.now();
+  if(now - s.lastHzTs >= 1000){
+    const hz = s.samples / ((now - s.lastHzTs)/1000);
+    document.getElementById(`hz-${s.id}`).textContent = hz.toFixed(1);
+    s.samples=0; s.lastHzTs = now;
+  }
+
+  document.getElementById(`kg-${s.id}`).textContent = s.vkg.toFixed(3);
+  document.getElementById(`fill-${s.id}`).style.width = `${Math.min(s.vkg/maxKg,1)*100}%`;
+
+  if(vS1 && vS2 && vS3 && vS4){
+    vS1.textContent = (sensors[0]?.vkg||0).toFixed(2);
+    vS2.textContent = (sensors[1]?.vkg||0).toFixed(2);
+    vS3.textContent = (sensors[2]?.vkg||0).toFixed(2);
+    vS4.textContent = (sensors[3]?.vkg||0).toFixed(2);
+  }
+
+  markHeatDirty();
+}
+
+/* ===== WebSocket & demo ===== */
+function handleMessage(obj){
+  if(typeof obj.kg === 'number'){ pushSample(sensors[0], +obj.kg); return; }
+  if(Array.isArray(obj.s)){ for(let i=0;i<Math.min(N,obj.s.length);i++){ pushSample(sensors[i], Number(obj.s[i])||0); } return; }
+  let used=false;
+  for(let i=0;i<N;i++){ const k=`kg${i+1}`; if(typeof obj[k]==='number'){ pushSample(sensors[i], +obj[k]); used=true; } }
+  if(used) return;
+  if(typeof obj.ch==='number' && typeof obj.kg==='number'){ const idx=Math.max(0,Math.min(N-1,obj.ch|0)); pushSample(sensors[idx], +obj.kg); }
+}
 function connectWS(){
-  const ip=ipEl.value.trim(); if(!ip){ alert('Ingresa la IP de la ESP32'); return; }
-  localStorage.setItem('espIp',ip);
-  ws=new WebSocket(`ws://${ip}/ws`);
-  ws.onopen=()=>setStatus(true,'Conectado');
-  ws.onerror=()=>setStatus(false,'Error');
-  ws.onclose=()=>setStatus(false,'Desconectado');
-  ws.onmessage=e=>{ try{ const {kg}=JSON.parse(e.data); const v=Number(kg)||0; updateUI(v);}catch{} };
+  const ip = ipEl.value.trim(); if(!ip){ alert('Ingresa la IP de la ESP32'); return; }
+  localStorage.setItem('espIp', ip);
+  const scheme = (location.protocol === 'https:') ? 'wss' : 'ws';
+  try{ ws = new WebSocket(`${scheme}://${ip}/ws`); }catch(e){ setStatus(false,'Error'); return; }
+  ws.onopen = ()=> setStatus(true,'Conectado');
+  ws.onerror= ()=> setStatus(false,'Error');
+  ws.onclose= ()=> setStatus(false,'Desconectado');
+  ws.onmessage = (e)=>{ try{ handleMessage(JSON.parse(e.data)); }catch{} };
 }
 function disconnectWS(){ if(ws){ ws.close(); ws=null; } setStatus(false,'Desconectado'); }
-function startDemo(){ stopDemo(); let t=0; timerDemo=setInterval(()=>{ t+=0.05; const v=Math.max(0,(Math.sin(t)*0.5+0.5)*maxKg*0.8+Math.random()*0.1); updateUI(v); },50); setStatus(true,'Demo'); }
-function stopDemo(){ if(timerDemo){ clearInterval(timerDemo); timerDemo=null; } }
-maxkgEl.onchange=()=>{ maxKg=Math.max(0.1,parseFloat(maxkgEl.value)||10); localStorage.setItem('maxKg',maxKg.toFixed(1)); draw(); };
+
+function startDemo(){
+  stopDemo(); setStatus(true,'Demo');
+  const baseHz=20; let last=performance.now(); const phase=[0,0.6,1.2,1.8];
+  function tick(now){
+    demoRAF=requestAnimationFrame(tick);
+    if(now-last < 1000/baseHz) return; last=now;
+    for(let i=0;i<sensors.length;i++){
+      const t=now/1000+phase[i];
+      const raw=Math.max(0,(Math.sin(t)*0.5+0.5)*maxKg*0.8 + (Math.random()*0.03));
+      pushSample(sensors[i], raw);
+    }
+  }
+  demoRAF=requestAnimationFrame(tick);
+}
+function stopDemo(){ if(demoRAF){ cancelAnimationFrame(demoRAF); demoRAF=0; } }
+
+/* ===== Paleta ámbar (para mapa) ===== */
+function hslToRgb(h,s,l){ s/=100; l/=100; const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs(((h/60)%2)-1)), m=l-c/2; let r=0,g=0,b=0; if(h<60){r=c;g=x;} else if(h<120){r=x;g=c;} else if(h<180){g=c;b=x;} else if(h<240){g=x;b=c;} else if(h<300){r=x;b=c;} else {r=c;b=x;} return [Math.round((r+m)*255),Math.round((g+m)*255),Math.round((b+m)*255)]; }
+function amberRGB(t){ t=Math.max(0,Math.min(1,t)); const h=42,s=25+70*t,l=14+50*Math.pow(t,0.85); return hslToRgb(h,s,l); }
+
+/* ===== Heatmap (4 cuadrados independientes) ===== */
+let heatCtx = heatCvs.getContext('2d');
+let heatW=0, heatH=0, heatDirty=true, lastHeatTs=0;
+function roundRectPath(ctx, x,y,w,h,r){ const rr=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.arcTo(x+w,y,  x+w,y+h, rr); ctx.arcTo(x+w,y+h,x,y+h, rr); ctx.arcTo(x,y+h,  x,y, rr); ctx.arcTo(x,y,    x+w,y, rr); ctx.closePath(); }
+function drawTile(ctx,x,y,w,h,value,label,pos='below'){ const t=Math.max(0,Math.min(1,value/maxKg)); const [r,g,b]=amberRGB(t); ctx.save(); roundRectPath(ctx,x,y,w,h,TILE_RADIUS); ctx.fillStyle=`rgb(${r},${g},${b})`; ctx.fill(); ctx.clip(); const grd=ctx.createLinearGradient(x,y,x,y+h); grd.addColorStop(0,'rgba(255,255,255,0.10)'); grd.addColorStop(0.6,'rgba(0,0,0,0.00)'); grd.addColorStop(1,'rgba(0,0,0,0.20)'); ctx.fillStyle=grd; ctx.fillRect(x,y,w,h); ctx.restore(); ctx.strokeStyle='rgba(255,255,255,0.10)'; ctx.lineWidth=1.2; roundRectPath(ctx,x,y,w,h,TILE_RADIUS); ctx.stroke(); const fs=Math.max(16,Math.min(20,Math.round(w*0.13))); ctx.font=`700 ${fs}px system-ui`; ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.textAlign='center'; if(pos==='above'){ ctx.textBaseline='bottom'; ctx.fillText(`${label} ${value.toFixed(2)} kg`, x+w/2, y-8); } else { ctx.textBaseline='top'; ctx.fillText(`${label} ${value.toFixed(2)} kg`, x+w/2, y+h+12); } }
+function drawHeatmap(force=false){ const now=performance.now(); if(!force && now-lastHeatTs<60) return; lastHeatTs=now; heatDirty=false; const ctx=heatCtx,W=heatW,H=heatH; ctx.clearRect(0,0,W,H); const x0=HEAT_PAD, y0=HEAT_PAD+LABEL_TOP; const w=W-HEAT_PAD*2; const h=H-HEAT_PAD*2-LABEL_TOP-LABEL_BOTTOM; roundRectPath(ctx,x0,y0,w,h,HEAT_RADIUS); ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.stroke(); const gap=TILE_GAP; const tw=(w-gap)/2; const th=(h-gap)/2; const v1=sensors[0]?.vkg||0, v2=sensors[1]?.vkg||0, v3=sensors[2]?.vkg||0, v4=sensors[3]?.vkg||0; drawTile(ctx,x0,        y0,        tw,th,v1,'S1','above'); drawTile(ctx,x0+tw+gap,y0,        tw,th,v2,'S2','above'); drawTile(ctx,x0,        y0+th+gap,tw,th,v3,'S3','below'); drawTile(ctx,x0+tw+gap,y0+th+gap,tw,th,v4,'S4','below'); }
+
+/* ===== Resize (charts + heatmap) ===== */
+function resizeAllCanvases(){
+  sensors.forEach(s=>{ if(!s.cvs) return; const parentW=Math.floor(s.cvs.parentElement.clientWidth); const cssW=Math.max(320,Math.min(CHART_MAX_PX,parentW)); const cssH=Math.round(cssW*0.4); const {ctx,W,H}=setupCanvas(s.cvs,cssW,cssH); s.ctx=ctx; s.W=W; s.H=H; drawChart(s); });
+  if(heatCvs){ const wrapW=Math.floor(heatCvs.parentElement.clientWidth); const cssW=Math.max(300,Math.min(HEAT_MAX_PX,wrapW)); const cssH=cssW+LABEL_TOP+LABEL_BOTTOM+12; const obj=setupCanvas(heatCvs,cssW,cssH); heatCtx=obj.ctx; heatW=obj.W; heatH=obj.H; heatCvs.style.margin='0 auto'; if(currentView==='heatmap') drawHeatmap(true); }
+}
+
+/* ===== Loop ===== */
+(function heatLoop(){ requestAnimationFrame(heatLoop); if(currentView==='heatmap' && heatDirty) drawHeatmap(); })();
+function markHeatDirty(){ if(currentView==='heatmap') heatDirty = true; }
+
+/* ===== Vistas ===== */
+function showDashboard(){ cardsEl.style.display=''; chartsEl.style.display=''; heatmapSection.style.display='none'; btnHeatmap.textContent='Mapa'; currentView='dashboard'; }
+function showHeatmap(){ cardsEl.style.display='none'; chartsEl.style.display='none'; heatmapSection.style.display='block'; btnHeatmap.textContent='Volver al dashboard'; currentView='heatmap'; resizeAllCanvases(); drawHeatmap(true); }
+
+/* ===== Portada FX (blobs suaves) ===== */
+let fxCtx=null, fxW=0, fxH=0, fxRAF=0, fxActive=true; const BLOBS=5; const blobs=[];
+function setupFX(){ if(!bgfx) return; const rect=bgfx.getBoundingClientRect(); bgfx.width=Math.round(rect.width*DPR); bgfx.height=Math.round(rect.height*DPR); bgfx.style.width=rect.width+'px'; bgfx.style.height=rect.height+'px'; fxCtx=bgfx.getContext('2d'); fxCtx.setTransform(DPR,0,0,DPR,0,0); fxW=rect.width; fxH=rect.height; blobs.length=0; for(let i=0;i<BLOBS;i++){ blobs.push({ x:Math.random()*fxW, y:Math.random()*fxH, r: 120+Math.random()*180, vx:(Math.random()*2-1)*0.25, vy:(Math.random()*2-1)*0.25, hue: i%2? 210:42, sat:i%2? 70:90, alpha: i%2? 0.20:0.24 }); } }
+function tickFX(){ if(!fxActive||!fxCtx) return; fxRAF=requestAnimationFrame(tickFX); fxCtx.clearRect(0,0,fxW,fxH); fxCtx.globalCompositeOperation='lighter'; for(const b of blobs){ const grd=fxCtx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r); const c1=`hsla(${b.hue} ${b.sat}% 55% / ${b.alpha})`; const c0=`hsla(${b.hue} ${b.sat}% 55% / 0)`; grd.addColorStop(0,c1); grd.addColorStop(1,c0); fxCtx.fillStyle=grd; fxCtx.beginPath(); fxCtx.arc(b.x,b.y,b.r,0,Math.PI*2); fxCtx.fill(); b.x+=b.vx; b.y+=b.vy; if(b.x<-50||b.x>fxW+50) b.vx*=-1; if(b.y<-50||b.y>fxH+50) b.vy*=-1; }
+  fxCtx.globalCompositeOperation='source-over'; }
+window.addEventListener('resize', ()=>{ if(landing.style.display!=='none'){ setupFX(); } resizeAllCanvases(); });
 
 /* ===== Navegación ===== */
-function gotoApp(username){
-  landing.style.display='none'; app.style.display='block';
-  cornerLogo.src=LOGO_PATH; cornerLogo.style.display='block';
-  helloUser.textContent = username ? `Hola, ${username}` : '';
-  if(demoAfterLogin){ startDemo(); demoAfterLogin=false; demoEl.checked=true; }
-}
-function goLogout(){
-  disconnectWS(); stopDemo();
-  app.style.display='none'; landing.style.display='grid';
-  cornerLogo.style.display='none'; helloUser.textContent='';
-  userEl.value=''; passEl.value=''; loginErr.textContent='';
-  loginCard.style.display='flex';
-}
+function gotoApp(){ fxActive=false; cancelAnimationFrame(fxRAF); landing.style.display='none'; app.style.display='block'; if(LOGO_PATH){ cornerLogo.src=LOGO_PATH; cornerLogo.style.display='block'; } renderUI(); const now=performance.now(); sensors.forEach(s=>{ s.lastHzTs=now; s.samples=0; s.min=Infinity; s.max=-Infinity; s.buf.fill(0); s.kg=0; s.vkg=0; document.getElementById(`kg-${s.id}`).textContent='0.000'; document.getElementById(`fill-${s.id}`).style.width='0%'; document.getElementById(`min-${s.id}`).textContent='0.000'; document.getElementById(`max-${s.id}`).textContent='0.000'; document.getElementById(`hz-${s.id}`).textContent='0.0'; drawChart(s); }); showDashboard(); }
+function goLogout(){ disconnectWS(); stopDemo(); app.style.display='none'; landing.style.display='grid'; cornerLogo.style.display='none'; userEl.value=''; passEl.value=''; loginErr.textContent=''; loginCard.style.display='flex'; fxActive=true; setupFX(); tickFX(); }
 
-/* ===== Login ===== */
-btnShowLogin.onclick = ()=>{ loginCard.style.display = 'flex'; userEl.focus(); };
-btnDemo.onclick = ()=>{ demoAfterLogin = true; loginCard.style.display='flex'; userEl.focus(); };
-btnLogin.onclick = ()=>{
-  const u=userEl.value.trim(); const p=passEl.value.trim();
-  loginErr.textContent='';
-  if(!VALID_USERS.has(u)){ loginErr.textContent='Usuario no autorizado.'; return; }
-  if(p!==u){ loginErr.textContent='Contraseña inválida.'; return; }
-  gotoApp(u);
-};
+/* ===== Eventos UI ===== */
+btnShowLogin.onclick = ()=>{ loginCard.style.display='flex'; userEl.focus(); };
+btnDemo.onclick = ()=>{ loginCard.style.display='none'; gotoApp(); startDemo(); setStatus(true,'Demo'); };
+btnLogin.onclick = ()=>{ const u=userEl.value.trim(), p=passEl.value; loginErr.textContent=''; if(!VALID_USERS.has(u)){ loginErr.textContent='Usuario no autorizado.'; return; } if(p!==u){ loginErr.textContent='Contraseña inválida.'; return; } gotoApp(); };
 
-/* ===== Header ===== */
+// Mostrar/ocultar contraseña + CapsLock
+if(togglePassBtn){ togglePassBtn.onclick=()=>{ const show = passEl.type==='password'; passEl.type = show? 'text':'password'; togglePassBtn.setAttribute('aria-pressed', show?'true':'false'); }; }
+passEl.addEventListener('keyup', (e)=>{ const on = e.getModifierState && e.getModifierState('CapsLock'); capsEl.style.display = on? 'inline' : 'none'; if(e.key==='Enter'){ btnLogin.click(); } });
+userEl.addEventListener('keyup', (e)=>{ if(e.key==='Enter'){ passEl.focus(); } });
+
+btnHeatmap.onclick = ()=>{ (currentView==='dashboard') ? showHeatmap() : showDashboard(); };
 btnConnect.onclick=()=>{ stopDemo(); connectWS(); };
 btnDisconnect.onclick=()=>{ disconnectWS(); };
-demoEl.onchange=e=>{ if(e.target.checked){ disconnectWS(); startDemo(); } else { stopDemo(); setStatus(false,'Desconectado'); } };
 document.getElementById('btnLogout').onclick = goLogout;
+maxkgEl.addEventListener('input', ()=>{ const v=Math.max(0.1, parseFloat(maxkgEl.value)||10); maxKg = v; localStorage.setItem('maxKg', v.toFixed(1)); sensors.forEach(drawChart); if(currentView==='heatmap') drawHeatmap(true); });
 
 /* ===== Init ===== */
-draw(); // siempre arrancamos en portada (sin sesión persistente)
+function renderUI(){
+  cardsEl.innerHTML = sensors.map(s=>`
+    <div class="card" id="card-${s.id}" role="region" aria-label="Indicadores del ${s.label}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="label">Sensor</div><div class="label">${s.label}</div>
+      </div>
+      <div class="value" id="kg-${s.id}" aria-live="polite">0.000</div>
+      <div class="bar" aria-hidden="true"><div class="fill" id="fill-${s.id}" style="width:0%"></div></div>
+      <div class="row">
+        <div class="kpi">Mín: <b id="min-${s.id}">0.000</b> kg</div>
+        <div class="kpi">Máx: <b id="max-${s.id}">0.000</b> kg</div>
+        <div class="kpi">Hz: <b id="hz-${s.id}">0.0</b></div>
+      </div>
+    </div>
+  `).join('');
+  chartsEl.innerHTML = sensors.map(s=>`
+    <div class="chart" role="img" aria-label="Histórico ${s.label} de aproximadamente 20 segundos">
+      <div class="label">Histórico ${s.label} (~20 s)</div>
+      <canvas id="cv-${s.id}"></canvas>
+    </div>
+  `).join('');
+  sensors.forEach(s=>{ s.cvs = document.getElementById(`cv-${s.id}`); });
+  resizeAllCanvases();
+}
+
+// Arranque portada FX
+setupFX(); tickFX();
 </script>
 </body>
 </html>
