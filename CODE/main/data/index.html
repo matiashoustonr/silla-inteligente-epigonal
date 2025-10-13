@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FSR Live • Austranet × Epigonal</title>
+<style>
+:root{ --bg:#0f1220; --fg:#eef1ff; --muted:#9aa3b2; --accent:#6aa6ff; --card:#171c2b; --bar:#2a3248; --good:#33d69f; --bad:#ef5f6b; }
+*{box-sizing:border-box} html,body{height:100%} body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,Segoe UI,Roboto}
+
+/* LANDING */
+#landing{min-height:100dvh;display:grid;place-items:center;padding:36px}
+.hero{max-width:1000px;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px}
+.brandline{display:inline-block;font-weight:900;letter-spacing:.6px;line-height:1.05;background:linear-gradient(90deg,#7ab8ff,#c1c9ff 30%,#7ab8ff 70%,#c1c9ff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 10px 30px rgba(0,0,0,.35))}
+.brandTop{font-size:clamp(28px,6vw,56px)}
+.brandMid{font-size:clamp(18px,3vw,24px);color:var(--muted);margin-top:-6px}
+.card-landing{background:linear-gradient(180deg,rgba(23,28,43,.9),rgba(23,28,43,.65));border:1px solid #293048;border-radius:20px;padding:18px;display:inline-flex;gap:10px;align-items:center}
+.card-landing .dot{width:8px;height:8px;border-radius:999px;background:var(--good)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+button{background:var(--accent);color:#0b1020;border:0;padding:12px 18px;border-radius:14px;font-weight:700;cursor:pointer;transition:filter .15s}
+button:hover{filter:brightness(1.05)}
+button.secondary{background:#24304a;color:var(--fg)}
+.small{font-size:13px;color:var(--muted)}
+.footer-landing{position:fixed;left:0;right:0;bottom:14px;text-align:center;color:var(--muted);font-size:12px;padding:0 10px}
+
+/* LOGIN */
+#loginCard{display:none;gap:10px;flex-direction:column;align-items:stretch;width:min(420px,92vw);background:var(--card);border:1px solid #293048;border-radius:16px;padding:16px;margin-top:6px}
+#loginCard h3{margin:0 0 6px}
+.input{display:flex;flex-direction:column;gap:6px;text-align:left}
+.label{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:12px}
+input[type=text],input[type=password],input[type=number]{background:#0d1220;border:1px solid #2b3348;color:var(--fg);padding:10px 12px;border-radius:10px;outline:none;min-width:200px}
+.error{color:var(--bad);font-size:13px;min-height:18px}
+
+/* APP */
+#app{display:none}
+.container{max-width:1000px;margin:36px auto;padding:0 16px}
+header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap}
+h1{font-size:22px;margin:0;color:#fff;letter-spacing:.3px}
+.badge{font-size:12px;color:var(--muted)}
+.panel{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--card);padding:12px;border-radius:14px}
+.toggle{display:flex;align-items:center;gap:8px}
+.toggle input{accent-color:var(--accent);width:18px;height:18px}
+.help{color:var(--muted);font-size:13px}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:16px}
+.card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.value{font-size:48px;font-weight:800}
+.sub{color:var(--muted);margin-top:6px}
+.bar{height:18px;background:var(--bar);border-radius:999px;overflow:hidden;margin-top:6px}
+.fill{height:100%;width:0%;background:linear-gradient(90deg,#74d0ff,#6aa6ff);transition:width .12s}
+.kpis{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
+.kpi{background:#12182a;border:1px solid #262f47;border-radius:12px;padding:10px 12px;min-width:140px}
+.kpi .v{font-weight:700}
+.chart{background:var(--card);border-radius:16px;padding:12px;margin-top:16px}
+canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2d}
+.status{display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:999px;background:#777}
+.dot.ok{background:var(--good)} .dot.err{background:var(--bad)}
+footer{color:var(--muted);text-align:center;margin:20px 0 10px}
+
+/* LOGO ESQUINA */
+#cornerLogo{position:fixed;right:18px;top:18px;width:120px;height:auto;opacity:.95;filter:drop-shadow(0 6px 20px rgba(0,0,0,.35));display:none;pointer-events:none}
+@media (max-width:560px){ #cornerLogo{width:90px} }
+</style>
+</head>
+<body>
+
+<!-- PORTADA -->
+<section id="landing">
+  <div class="hero">
+    <div class="brandline brandTop">Austranet × Epigonal</div>
+    <div class="brandline brandMid">colaboración para medición en tiempo real</div>
+
+    <div class="card-landing">
+      <div class="dot"></div>
+      <div class="small">Listo para conectar con tu ESP32 (WebSocket)</div>
+    </div>
+
+    <div class="actions">
+      <button id="btnShowLogin">Entrar</button>
+      <button id="btnDemo" class="secondary">Ver demo</button>
+    </div>
+
+    <div id="loginCard">
+      <h3>Inicio de sesión</h3>
+      <div class="input">
+        <div class="label">Usuario</div>
+        <input id="user" type="text" placeholder="Matias / Manuel / Gabriel / Gabriela" autocomplete="username"/>
+      </div>
+      <div class="input">
+        <div class="label">Contraseña</div>
+        <input id="pass" type="password" placeholder="igual al nombre" autocomplete="current-password"/>
+      </div>
+      <div id="loginErr" class="error"></div>
+      <button id="btnLogin">Ingresar</button>
+    </div>
+
+    <div class="small">Podrás cambiar la IP y el rango visual dentro del panel.</div>
+  </div>
+  <div class="footer-landing">© Austranet × Epigonal — UI experimental</div>
+</section>
+
+<!-- LOGO -->
+<img id="cornerLogo" alt="Logo Austranet"/>
+
+<!-- APP -->
+<section id="app">
+  <div class="container">
+    <header>
+      <div>
+        <h1>FSR Live <span class="badge">dashboard</span></h1>
+        <div class="help">Conecta a tu ESP32 o usa “Demo”.</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="status"><div id="dot" class="dot"></div><div id="statusTxt">Desconectado</div></div>
+        <button id="btnLogout" class="secondary">Salir</button>
+      </div>
+    </header>
+
+    <div class="panel">
+      <input id="ip" type="text" placeholder="IP de la ESP (ej: 172.20.10.5)"/>
+      <button id="btnConnect">Conectar</button>
+      <button id="btnDisconnect" class="secondary" disabled>Desconectar</button>
+      <div class="toggle">
+        <input id="demo" type="checkbox"/>
+        <label for="demo">Demo</label>
+      </div>
+      <div class="right" style="display:flex;gap:10px;align-items:center">
+        <label class="help">Max kg:</label>
+        <input id="maxkg" type="number" step="0.1" min="0.1" value="10.0" style="width:100px"/>
+        <span class="help" id="helloUser"></span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">Peso</div>
+        <div id="kg" class="value">0.000</div>
+        <div class="sub">kg actuales</div>
+      </div>
+      <div class="card">
+        <div class="label">Nivel</div>
+        <div class="bar"><div id="fill" class="fill"></div></div>
+        <div id="pct" class="sub">0%</div>
+      </div>
+      <div class="card">
+        <div class="label">Indicadores</div>
+        <div class="kpis">
+          <div class="kpi"><div class="help">Mín</div><div id="min" class="v">0.000 kg</div></div>
+          <div class="kpi"><div class="help">Máx</div><div id="max" class="v">0.000 kg</div></div>
+          <div class="kpi"><div class="help">Muestras/s</div><div id="hz" class="v">0.0</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart card">
+      <div class="label">Histórico (~20 s)</div>
+      <canvas id="chart" width="900" height="250"></canvas>
+    </div>
+
+    <footer>Tip: activa “Demo” para probar diseño sin hardware.</footer>
+  </div>
+</section>
+
+<script>
+/* ===== Ruta del logo ===== */
+const LOGO_PATH = "assets/Austranet-Logo.png";
+
+/* ===== Usuarios válidos (password = igual al nombre, exacto) ===== */
+const VALID_USERS = new Set(["Matias","Manuel","Gabriel","Gabriela"]);
+
+/* ===== Refs ===== */
+const landing = document.getElementById('landing');
+const app = document.getElementById('app');
+const cornerLogo = document.getElementById('cornerLogo');
+const helloUser = document.getElementById('helloUser');
+
+const btnShowLogin = document.getElementById('btnShowLogin');
+const btnDemo = document.getElementById('btnDemo');
+const loginCard = document.getElementById('loginCard');
+const userEl = document.getElementById('user');
+const passEl = document.getElementById('pass');
+const btnLogin = document.getElementById('btnLogin');
+const loginErr = document.getElementById('loginErr');
+
+const ipEl = document.getElementById('ip');
+const btnConnect = document.getElementById('btnConnect');
+const btnDisconnect = document.getElementById('btnDisconnect');
+const demoEl = document.getElementById('demo');
+const maxkgEl = document.getElementById('maxkg');
+const dot = document.getElementById('dot');
+const statusTxt = document.getElementById('statusTxt');
+
+const kgEl = document.getElementById('kg');
+const fill = document.getElementById('fill');
+const pctEl = document.getElementById('pct');
+const minEl = document.getElementById('min');
+const maxEl = document.getElementById('max');
+const hzEl  = document.getElementById('hz');
+
+const cvs = document.getElementById('chart');
+const ctx = cvs.getContext('2d');
+const W = cvs.width, H = cvs.height;
+const BUF_LEN = 200; let buf = new Array(BUF_LEN).fill(0);
+
+let ws = null, timerDemo = null;
+let maxKg = parseFloat(localStorage.getItem('maxKg') || maxkgEl.value);
+let ipSaved = localStorage.getItem('espIp') || ''; // solo guardamos IP y maxKg
+ipEl.value = ipSaved;
+maxkgEl.value = maxKg.toFixed(1);
+
+let minSeen = Infinity, maxSeen = -Infinity;
+let samples = 0, lastHzTs = 0;
+let demoAfterLogin = false;
+
+/* ===== Gráfico y UI ===== */
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.globalAlpha=.15; ctx.strokeStyle='#9aa3b2';
+  for(let i=1;i<5;i++){ const y=H*i/5; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  ctx.globalAlpha=1;
+  const step=W/(BUF_LEN-1); ctx.beginPath();
+  for(let i=0;i<BUF_LEN;i++){ const v=Math.max(0,Math.min(1,buf[i]/maxKg)); const x=i*step, y=H-v*H; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.lineWidth=2; ctx.strokeStyle='#6aa6ff'; ctx.stroke();
+}
+function push(v){
+  buf.push(v); if(buf.length>BUF_LEN) buf.shift(); draw();
+  if(v<minSeen) minSeen=v; if(v>maxSeen) maxSeen=v;
+  minEl.textContent=`${minSeen.toFixed(3)} kg`; maxEl.textContent=`${maxSeen.toFixed(3)} kg`;
+  const now=performance.now(); samples++; if(now-lastHzTs>=1000){ hzEl.textContent=(samples/((now-lastHzTs)/1000)).toFixed(1); samples=0; lastHzTs=now; }
+}
+function updateUI(val){
+  kgEl.textContent=val.toFixed(3);
+  const p=Math.min(val/maxKg,1)*100;
+  fill.style.width=`${p.toFixed(1)}%`; pctEl.textContent=`${p.toFixed(0)}%`;
+  push(val);
+}
+function setStatus(ok,msg){ dot.className='dot '+(ok?'ok':''); statusTxt.textContent=msg|| (ok?'Conectado':'Desconectado'); btnConnect.disabled=ok; btnDisconnect.disabled=!ok; }
+
+/* ===== WS & Demo ===== */
+function connectWS(){
+  const ip=ipEl.value.trim(); if(!ip){ alert('Ingresa la IP de la ESP32'); return; }
+  localStorage.setItem('espIp',ip);
+  ws=new WebSocket(`ws://${ip}/ws`);
+  ws.onopen=()=>setStatus(true,'Conectado');
+  ws.onerror=()=>setStatus(false,'Error');
+  ws.onclose=()=>setStatus(false,'Desconectado');
+  ws.onmessage=e=>{ try{ const {kg}=JSON.parse(e.data); const v=Number(kg)||0; updateUI(v);}catch{} };
+}
+function disconnectWS(){ if(ws){ ws.close(); ws=null; } setStatus(false,'Desconectado'); }
+function startDemo(){ stopDemo(); let t=0; timerDemo=setInterval(()=>{ t+=0.05; const v=Math.max(0,(Math.sin(t)*0.5+0.5)*maxKg*0.8+Math.random()*0.1); updateUI(v); },50); setStatus(true,'Demo'); }
+function stopDemo(){ if(timerDemo){ clearInterval(timerDemo); timerDemo=null; } }
+maxkgEl.onchange=()=>{ maxKg=Math.max(0.1,parseFloat(maxkgEl.value)||10); localStorage.setItem('maxKg',maxKg.toFixed(1)); draw(); };
+
+/* ===== Navegación ===== */
+function gotoApp(username){
+  landing.style.display='none'; app.style.display='block';
+  cornerLogo.src=LOGO_PATH; cornerLogo.style.display='block';
+  helloUser.textContent = username ? `Hola, ${username}` : '';
+  if(demoAfterLogin){ startDemo(); demoAfterLogin=false; demoEl.checked=true; }
+}
+function goLogout(){
+  disconnectWS(); stopDemo();
+  app.style.display='none'; landing.style.display='grid';
+  cornerLogo.style.display='none'; helloUser.textContent='';
+  userEl.value=''; passEl.value=''; loginErr.textContent='';
+  loginCard.style.display='flex';
+}
+
+/* ===== Login ===== */
+btnShowLogin.onclick = ()=>{ loginCard.style.display = 'flex'; userEl.focus(); };
+btnDemo.onclick = ()=>{ demoAfterLogin = true; loginCard.style.display='flex'; userEl.focus(); };
+btnLogin.onclick = ()=>{
+  const u=userEl.value.trim(); const p=passEl.value.trim();
+  loginErr.textContent='';
+  if(!VALID_USERS.has(u)){ loginErr.textContent='Usuario no autorizado.'; return; }
+  if(p!==u){ loginErr.textContent='Contraseña inválida.'; return; }
+  gotoApp(u);
+};
+
+/* ===== Header ===== */
+btnConnect.onclick=()=>{ stopDemo(); connectWS(); };
+btnDisconnect.onclick=()=>{ disconnectWS(); };
+demoEl.onchange=e=>{ if(e.target.checked){ disconnectWS(); startDemo(); } else { stopDemo(); setStatus(false,'Desconectado'); } };
+document.getElementById('btnLogout').onclick = goLogout;
+
+/* ===== Init ===== */
+draw(); // siempre arrancamos en portada (sin sesión persistente)
+</script>
+</body>
+</html>
