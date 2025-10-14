@@ -7,7 +7,7 @@
 <style>
 :root{
   --bg:#0f1220; --fg:#eef1ff; --muted:#9aa3b2; --accent:#6aa6ff; --card:#171c2b;
-  --bar:#2a3248; --good:#33d69f; --bad:#ef5f6b;
+  --bar:#2a3248; --good:#33d69f; --bad:#ef5f6b; --amber:#ffb300;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -61,6 +61,11 @@ h1{font-size:22px;margin:0;color:#fff;letter-spacing:.3px}
 .dot{width:10px;height:10px;border-radius:999px;background:var(--bad)}
 .dot.ok{background:var(--good)}
 
+/* Nav principal */
+.nav{display:flex;gap:8px;flex-wrap:wrap}
+.nav button{background:#24304a;color:#e6ecff}
+.nav button.active{background:#6aa6ff;color:#0b1020}
+
 /* 2×2 grids */
 .grid2x2{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:16px}
 @media (max-width: 820px){ .grid2x2{grid-template-columns:1fr} }
@@ -80,7 +85,7 @@ h1{font-size:22px;margin:0;color:#fff;letter-spacing:.3px}
 canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2d}
 .chart canvas{margin:0 auto;}
 
-/* ===== VAL MATRIX (arriba del mapa) ===== */
+/* ===== VAL MATRIX (Mapa) ===== */
 .vals-matrix{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:6px 0 10px}
 .vals-matrix div{background:#12182a;border:1px solid #262f47;border-radius:10px;padding:10px 12px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
 .vals-matrix span{ color:var(--muted); font-weight:600 }
@@ -90,6 +95,25 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
 #heatmap{display:none;margin-top:16px}
 #heat{display:block;width:100%;height:auto;background:#151b2d;border-radius:14px;border:1px solid #262f47;margin:0 auto}
 
+/* ===== PERFIL ===== */
+#profile{display:none}
+.grid3{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+@media (max-width: 980px){ .grid3{grid-template-columns:1fr} }
+.badge-ok{color:#0f1f0f;background:rgba(51,214,159,.18);border:1px solid rgba(51,214,159,.35);padding:3px 8px;border-radius:999px;font-size:12px}
+.badge-warn{color:#2a1a00;background:rgba(255,179,0,.18);border:1px solid rgba(255,179,0,.35);padding:3px 8px;border-radius:999px;font-size:12px}
+.badge-bad{color:#2a0b10;background:rgba(239,95,107,.18);border:1px solid rgba(239,95,107,.35);padding:3px 8px;border-radius:999px;font-size:12px}
+
+.mbar{height:14px;background:#1a2234;border:1px solid #2a3147;border-radius:999px;overflow:hidden}
+.mbar .inner{height:100%;width:50%}
+.mbar .left{background:linear-gradient(90deg,#2a3248, var(--amber))}
+.mbar .right{background:linear-gradient(90deg,var(--amber), #2a3248)}
+.mbar .front{background:linear-gradient(90deg,#2a3248, var(--amber))}
+.mbar .back{background:linear-gradient(90deg,var(--amber), #2a3248)}
+.mbar .center{position:relative;height:100%}
+.mbar .tick{position:absolute;top:0;bottom:0;width:2px;background:#fff2;border-radius:1px;left:50%}
+
+#cop{display:block;width:100%;height:auto;background:#151b2d;border-radius:12px;border:1px solid #262f47}
+
 /* LOGO */
 #cornerLogo{position:fixed;right:18px;top:18px;width:120px;height:auto;opacity:.95;filter:drop-shadow(0 6px 20px rgba(0,0,0,.35));display:none;pointer-events:none}
 @media (max-width:560px){ #cornerLogo{width:90px} }
@@ -97,7 +121,7 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
 </head>
 <body>
 
-<!-- PORTADA (la misma base, refinada) -->
+<!-- PORTADA -->
 <section id="landing" aria-label="Portada">
   <canvas id="bgfx" aria-hidden="true"></canvas>
   <div class="hero">
@@ -141,24 +165,33 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
 <!-- LOGO -->
 <img id="cornerLogo" alt="Logo Austranet"/>
 
-<!-- APP (sin cambios de flujo) -->
+<!-- APP -->
 <section id="app" aria-labelledby="appTitle">
   <div class="container">
     <header>
       <div>
-        <h1 id="appTitle">FSR Live <span class="badge">dashboard</span></h1>
-        <div class="help">Conecta a tu ESP32 o usa “Mapa”.</div>
+        <h1 id="appTitle">FSR Live <span class="badge">suite</span></h1>
+        <div class="help">Navega: Perfil • Dashboard • Mapa</div>
       </div>
+
       <div style="display:flex;gap:10px;align-items:center">
         <div class="status" title="Estado de conexión">
           <div id="dot" class="dot" aria-hidden="true"></div>
           <div id="statusTxt" aria-live="polite">Desconectado</div>
         </div>
-        <button id="btnHeatmap" class="secondary" title="Alternar entre dashboard y mapa">Mapa</button>
+
+        <!-- NAV -->
+        <div class="nav" role="tablist" aria-label="Navegación principal">
+          <button id="btnProfile" class="secondary active" role="tab" aria-selected="true">Perfil</button>
+          <button id="btnDashboard" class="secondary" role="tab" aria-selected="false">Dashboard</button>
+          <button id="btnHeatmap" class="secondary" role="tab" aria-selected="false">Mapa</button>
+        </div>
+
         <button id="btnLogout" class="secondary" aria-label="Cerrar sesión">Salir</button>
       </div>
     </header>
 
+    <!-- Controles -->
     <div class="panel" role="region" aria-label="Controles de conexión">
       <input id="ip" type="text" placeholder="IP de la ESP (ej: 172.20.10.5)" inputmode="numeric" pattern="^\\d+\\.\\d+\\.\\d+\\.\\d+$" aria-label="Dirección IP de la ESP32"/>
       <button id="btnConnect" aria-label="Conectar a la ESP32">Conectar</button>
@@ -169,13 +202,50 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
       </div>
     </div>
 
-    <!-- INDICADORES 2×2 -->
-    <div id="cards" class="grid2x2"></div>
+    <!-- PERFIL -->
+    <section id="profile" aria-label="Perfil postural">
+      <div class="grid3">
+        <div class="card">
+          <div class="label">Conclusión</div>
+          <div id="conclusion" class="value" style="font-size:34px;margin-top:8px">Sin carga</div>
+          <div id="conclusionBadge" class="sub" style="margin-top:4px"></div>
 
-    <!-- CHARTS 2×2 -->
-    <div id="charts" class="grid2x2"></div>
+          <div class="row" style="margin-top:14px">
+            <div style="flex:1">
+              <div class="label">Balance izquierda ↔ derecha</div>
+              <div class="mbar"><div id="barLR" class="inner left" style="width:50%"></div><div class="tick"></div></div>
+              <div class="sub" id="txtLR">—</div>
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <div style="flex:1">
+              <div class="label">Balance atrás ↔ adelante</div>
+              <div class="mbar"><div id="barFB" class="inner front" style="width:50%"></div><div class="tick"></div></div>
+              <div class="sub" id="txtFB">—</div>
+            </div>
+          </div>
 
-    <!-- HEATMAP 2×2 -->
+          <div class="row" style="margin-top:12px">
+            <div class="kpi">Carga total: <b id="kpiTotal">0.00</b> kg</div>
+            <div class="kpi">Estabilidad: <b id="kpiStab">—</b></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="label">Centro de presión (CoP)</div>
+          <canvas id="cop" width="380" height="380"></canvas>
+          <div class="sub" style="margin-top:6px">• Punto blanco = CoP relativo • Cuadrantes = sensores (S1↖ S2↗ S3↙ S4↘)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" aria-label="Dashboard general">
+      <div id="cards" class="grid2x2"></div>
+      <div id="charts" class="grid2x2"></div>
+    </section>
+
+    <!-- MAPA -->
     <section id="heatmap" aria-label="Mapa 2×2 de cuadrados independientes">
       <div class="chart card">
         <div class="label">Lecturas (matriz)</div>
@@ -192,7 +262,7 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
       </div>
     </section>
 
-    <footer style="margin-top:18px">Tip: usa “Mapa” para vista compacta 2×2.</footer>
+    <footer style="margin-top:18px">Tip: navega con Perfil • Dashboard • Mapa.</footer>
   </div>
 </section>
 
@@ -211,9 +281,9 @@ const TILE_RADIUS = 14;
 const LABEL_TOP = 30;
 const LABEL_BOTTOM = 54;
 
-/* Velocidad FX portada (ajustables) */
-const FX_SPEED = 4;   // pulso (encender/apagar)
-const FX_DRIFT = 6;   // desplazamiento de blobs
+/* FX landing (ajustables) */
+const FX_SPEED = 1.8;
+const FX_DRIFT = 1.6;
 
 /* Refs DOM */
 const landing = document.getElementById('landing');
@@ -237,19 +307,40 @@ const maxkgEl = document.getElementById('maxkg');
 const statusTxt = document.getElementById('statusTxt');
 const dot = document.getElementById('dot');
 
+/* Nav */
+const btnProfile = document.getElementById('btnProfile');
+const btnDashboard = document.getElementById('btnDashboard');
+const btnHeatmap = document.getElementById('btnHeatmap');
+
+const profileSec = document.getElementById('profile');
+const dashboardSec = document.getElementById('dashboard');
+const heatmapSection = document.getElementById('heatmap');
+
+/* Dashboard canvases */
 const cardsEl = document.getElementById('cards');
 const chartsEl = document.getElementById('charts');
-const heatmapSection = document.getElementById('heatmap');
-const btnHeatmap = document.getElementById('btnHeatmap');
-const heatCvs = document.getElementById('heat');
 
+/* Heatmap */
+const heatCvs = document.getElementById('heat');
 const vS1 = document.getElementById('vS1');
 const vS2 = document.getElementById('vS2');
 const vS3 = document.getElementById('vS3');
 const vS4 = document.getElementById('vS4');
 
+/* Perfil */
+const conclusionEl = document.getElementById('conclusion');
+const conclusionBadgeEl = document.getElementById('conclusionBadge');
+const barLR = document.getElementById('barLR');
+const barFB = document.getElementById('barFB');
+const txtLR = document.getElementById('txtLR');
+const txtFB = document.getElementById('txtFB');
+const kpiTotal = document.getElementById('kpiTotal');
+const kpiStab = document.getElementById('kpiStab');
+const copCvs = document.getElementById('cop');
+let copCtx = copCvs.getContext('2d');
+
 /* Estado */
-let currentView = 'dashboard';
+let currentView = 'profile'; // perfil por defecto
 const N = 4;
 let ws = null, demoRAF = 0;
 let maxKg = parseFloat(localStorage.getItem('maxKg') || maxkgEl.value);
@@ -261,7 +352,8 @@ const savedIp = localStorage.getItem('espIp'); if (savedIp) ipEl.value = savedIp
 const sensors = Array.from({length:N}).map((_,i)=>({
   id:i, label:`S${i+1}`, kg:0, vkg:0,
   min:Infinity, max:-Infinity, samples:0, lastHzTs:0,
-  buf:new Array(200).fill(0), W:0,H:0, ctx:null, cvs:null
+  buf:new Array(200).fill(0), W:0,H:0, ctx:null, cvs:null,
+  dRecent:[] // variación reciente para estabilidad
 }));
 
 function setStatus(ok,msg){
@@ -299,26 +391,39 @@ function drawChart(s){
 
 /* ===== Ingesta + suavizado ===== */
 function pushSample(s, rawVal){
+  const prev = s.vkg;
   s.kg = rawVal;
   s.vkg = s.vkg + EMA_ALPHA * (rawVal - s.vkg);
+  // estabilidad: guardar |delta|
+  const d = Math.abs(s.vkg - prev);
+  s.dRecent.push(d); if(s.dRecent.length>60) s.dRecent.shift(); // ~3s si baseHz~20
+
   s.buf.push(s.vkg); if(s.buf.length>200) s.buf.shift();
   drawChart(s);
 
   if(s.vkg < s.min) s.min = s.vkg;
   if(s.vkg > s.max) s.max = s.vkg;
-  document.getElementById(`min-${s.id}`).textContent = s.min.toFixed(3);
-  document.getElementById(`max-${s.id}`).textContent = s.max.toFixed(3);
+  const id = s.id;
+  const minEl = document.getElementById(`min-${id}`);
+  const maxEl = document.getElementById(`max-${id}`);
+  const kgEl  = document.getElementById(`kg-${id}`);
+  const fillEl= document.getElementById(`fill-${id}`);
+  const hzEl  = document.getElementById(`hz-${id}`);
+
+  if(minEl) minEl.textContent = s.min.toFixed(3);
+  if(maxEl) maxEl.textContent = s.max.toFixed(3);
 
   s.samples++; const now = performance.now();
   if(now - s.lastHzTs >= 1000){
     const hz = s.samples / ((now - s.lastHzTs)/1000);
-    document.getElementById(`hz-${s.id}`).textContent = hz.toFixed(1);
+    if(hzEl) hzEl.textContent = hz.toFixed(1);
     s.samples=0; s.lastHzTs = now;
   }
 
-  document.getElementById(`kg-${s.id}`).textContent = s.vkg.toFixed(3);
-  document.getElementById(`fill-${s.id}`).style.width = `${Math.min(s.vkg/maxKg,1)*100}%`;
+  if(kgEl) kgEl.textContent = s.vkg.toFixed(3);
+  if(fillEl) fillEl.style.width = `${Math.min(s.vkg/maxKg,1)*100}%`;
 
+  // actualizar matrices/lecturas
   if(vS1 && vS2 && vS3 && vS4){
     vS1.textContent = (sensors[0]?.vkg||0).toFixed(2);
     vS2.textContent = (sensors[1]?.vkg||0).toFixed(2);
@@ -327,6 +432,7 @@ function pushSample(s, rawVal){
   }
 
   markHeatDirty();
+  markProfileDirty();
 }
 
 /* ===== WebSocket & demo ===== */
@@ -366,7 +472,7 @@ function startDemo(){
 }
 function stopDemo(){ if(demoRAF){ cancelAnimationFrame(demoRAF); demoRAF=0; } }
 
-/* ===== Paleta ámbar (monotónica) ===== */
+/* ===== Paleta ámbar para mapa ===== */
 function hslToRgb(h,s,l){
   s/=100; l/=100;
   const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs(((h/60)%2)-1)), m=l-c/2;
@@ -382,8 +488,8 @@ function amberRGB(t){
 }
 
 /* ===== Heatmap (4 cuadrados independientes) ===== */
-const heatCtx0 = heatCvs.getContext('2d');
-let heatCtx = heatCtx0, heatW=0, heatH=0, heatDirty=true, lastHeatTs=0;
+let heatCtx = heatCvs.getContext('2d');
+let heatW=0, heatH=0, heatDirty=true, lastHeatTs=0;
 
 function roundRectPath(ctx, x,y,w,h,r){
   const rr = Math.min(r, w/2, h/2);
@@ -395,7 +501,6 @@ function roundRectPath(ctx, x,y,w,h,r){
   ctx.arcTo(x,y,    x+w,y, rr);
   ctx.closePath();
 }
-
 function drawTile(ctx, x,y, w,h, value, label, pos='below'){
   const t = Math.max(0, Math.min(1, value/maxKg));
   const [r,g,b] = amberRGB(t);
@@ -430,7 +535,6 @@ function drawTile(ctx, x,y, w,h, value, label, pos='below'){
     ctx.fillText(`${label} ${value.toFixed(2)} kg`, Math.round(x + w/2)+.5, Math.round(y + h + 12)+.5);
   }
 }
-
 function drawHeatmap(force=false){
   const now = performance.now();
   if(!force && now - lastHeatTs < 60) return;
@@ -456,12 +560,171 @@ function drawHeatmap(force=false){
 
   drawTile(ctx, x0,          y0,          tw, th, v1, 'S1', 'above');
   drawTile(ctx, x0+tw+gap,   y0,          tw, th, v2, 'S2', 'above');
-  drawTile(ctx, x0,          y0+th+gap,   tw, th, v3, 'S3', 'below');
-  drawTile(ctx, x0+tw+gap,   y0+th+gap,   tw, th, v4, 'S4', 'below');
+  drawTile(ctx, x0,          y0+th+gap,   tw, th, v3, 'below');
+  drawTile(ctx, x0+tw+gap,   y0+th+gap,   tw, th, v4, 'below');
 }
 
-/* ===== Resize (charts + mapa) ===== */
+/* ===== PERFIL: análisis y CoP ===== */
+let profileDirty = true, lastProfileTs = 0;
+
+function computeProfile(){
+  const s1 = sensors[0]?.vkg||0;
+  const s2 = sensors[1]?.vkg||0;
+  const s3 = sensors[2]?.vkg||0;
+  const s4 = sensors[3]?.vkg||0;
+  const total = s1+s2+s3+s4;
+
+  // KPIs
+  if(kpiTotal) kpiTotal.textContent = total.toFixed(2);
+
+  // Estabilidad: promedio de deltas recientes (normalizado por maxKg)
+  let mov = 0;
+  for(const s of sensors){
+    if(s.dRecent.length){
+      mov += s.dRecent.reduce((a,b)=>a+b,0)/s.dRecent.length;
+    }
+  }
+  mov = mov/Math.max(1,sensors.length);
+  const movN = Math.min(1, mov/(maxKg*0.03)); // ~3% de escala ≈ movimiento notable
+  if(kpiStab) kpiStab.textContent = movN<0.25 ? 'Alta' : movN<0.6 ? 'Media' : 'Baja';
+
+  if(total < Math.max(0.6, maxKg*0.06)){ // sin carga
+    setConclusion('Sin carga','', 'ok');
+    setBars(0.5,0.5,'—','—');
+    drawCoP(0.5,0.5,false);
+    return;
+  }
+
+  const left  = s1 + s3;
+  const right = s2 + s4;
+  const front = s1 + s2;
+  const back  = s3 + s4;
+
+  const lr = (right - left) / total;  // + derecha, - izquierda
+  const fb = (front - back) / total;  // + adelante, - atrás
+
+  const lrAbs = Math.abs(lr), fbAbs = Math.abs(fb);
+  const TH_SOFT = 0.06, TH_STRONG = 0.12;
+
+  // Texto balance
+  let txtLRv = 'Centro';
+  if(lr > TH_STRONG) txtLRv = 'Muy a la derecha';
+  else if(lr > TH_SOFT) txtLRv = 'Leve a la derecha';
+  else if(lr < -TH_STRONG) txtLRv = 'Muy a la izquierda';
+  else if(lr < -TH_SOFT) txtLRv = 'Leve a la izquierda';
+
+  let txtFBv = 'Centro';
+  if(fb > TH_STRONG) txtFBv = 'Muy adelante';
+  else if(fb > TH_SOFT) txtFBv = 'Leve adelante';
+  else if(fb < -TH_STRONG) txtFBv = 'Muy atrás';
+  else if(fb < -TH_SOFT) txtFBv = 'Leve atrás';
+
+  if(txtLR) txtLR.textContent = `${txtLRv} (${(lr*100).toFixed(0)}%)`;
+  if(txtFB) txtFB.textContent = `${txtFBv} (${(fb*100).toFixed(0)}%)`;
+
+  // Barras (0..1, 0.5 = centro)
+  const toHalf = (v)=> Math.max(0, Math.min(1, 0.5 + v/2));
+  setBars(toHalf(lr), toHalf(fb), txtLRv, txtFBv);
+
+  // Conclusión combinada
+  let conclusion = 'Bien sentado';
+  let badgeKind = 'ok';
+  if(lrAbs>TH_STRONG || fbAbs>TH_STRONG){ conclusion = 'Necesita corrección'; badgeKind='bad'; }
+  else if(lrAbs>TH_SOFT || fbAbs>TH_SOFT){ conclusion = 'Ligeramente desbalanceado'; badgeKind='warn'; }
+
+  // Matiz dirección principal
+  const dir = (()=>{
+    if(lrAbs>=fbAbs){
+      if(lr>TH_SOFT) return ' (a la derecha)';
+      if(lr<-TH_SOFT) return ' (a la izquierda)';
+    }else{
+      if(fb>TH_SOFT) return ' (hacia adelante)';
+      if(fb<-TH_SOFT) return ' (hacia atrás)';
+    }
+    return '';
+  })();
+
+  setConclusion(conclusion+dir, txtLRv+' • '+txtFBv, badgeKind);
+
+  // CoP: x=Right/(L+R), y=Front/(F+B)
+  const x = right/Math.max(1e-6,(left+right));
+  const y = front/Math.max(1e-6,(front+back));
+  drawCoP(x,y,true);
+}
+
+function setBars(lrPos, fbPos, txtLRv, txtFBv){
+  // lrPos/fbPos en [0..1], 0.5 centro
+  const lrPerc = Math.round(lrPos*100);
+  const fbPerc = Math.round(fbPos*100);
+  if(barLR){ barLR.style.width = `${lrPerc}%`; barLR.className = 'inner ' + (lrPos>=0.5?'right':'left'); }
+  if(barFB){ barFB.style.width = `${fbPerc}%`; barFB.className = 'inner ' + (fbPos>=0.5?'front':'back'); }
+}
+
+function setConclusion(text, subtitle, kind){
+  if(conclusionEl) conclusionEl.textContent = text;
+  if(conclusionBadgeEl){
+    if(!subtitle){ conclusionBadgeEl.innerHTML=''; return; }
+    const cls = kind==='bad'?'badge-bad':kind==='warn'?'badge-warn':'badge-ok';
+    conclusionBadgeEl.innerHTML = `<span class="${cls}">${subtitle}</span>`;
+  }
+}
+
+function drawCoP(x,y,hasLoad){
+  const ctx=copCtx, W=copCvs.width/DPR, H=copCvs.height/DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  // cuadricula y marco
+  const pad=14, r=12, x0=pad, y0=pad, w=W-pad*2, h=H-pad*2;
+  roundRectPath(ctx,x0,y0,w,h,r);
+  ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.stroke();
+
+  // separadores
+  ctx.globalAlpha=0.25; ctx.strokeStyle='#0b1020'; ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(Math.round(x0+w/2)+.5, y0);   ctx.lineTo(Math.round(x0+w/2)+.5, y0+h);
+  ctx.moveTo(x0, Math.round(y0+h/2)+.5);   ctx.lineTo(x0+w, Math.round(y0+h/2)+.5);
+  ctx.stroke(); ctx.globalAlpha=1;
+
+  // tiles suaves
+  const gap=10, tw=(w-gap)/2, th=(h-gap)/2;
+  const vals=[
+    sensors[0]?.vkg||0, sensors[1]?.vkg||0, sensors[2]?.vkg||0, sensors[3]?.vkg||0
+  ];
+  const boxes=[
+    [x0, y0], [x0+tw+gap, y0], [x0, y0+th+gap], [x0+tw+gap, y0+th+gap]
+  ];
+  for(let i=0;i<4;i++){
+    const t=Math.max(0,Math.min(1, vals[i]/maxKg));
+    const [r,g,b]=amberRGB(t);
+    ctx.fillStyle=`rgba(${r},${g},${b},0.5)`;
+    roundRectPath(ctx, boxes[i][0], boxes[i][1], tw, th, 10);
+    ctx.fill();
+  }
+
+  // CoP
+  if(hasLoad){
+    const cx = x0 + x*w;
+    const cy = y0 + (1-y)*h; // y=1 arriba (front)
+    ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=6;
+    ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.arc(cx,cy,6,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+  }else{
+    ctx.fillStyle='#9aa3b2'; ctx.font='13px system-ui';
+    ctx.fillText('Sin carga', x0+8, y0+18);
+  }
+
+  // labels
+  ctx.fillStyle='#9aa3b2'; ctx.font='12px system-ui';
+  ctx.fillText('S1', x0+8, y0+14);
+  ctx.fillText('S2', x0+tw+gap+8, y0+14);
+  ctx.fillText('S3', x0+8, y0+th+gap+14);
+  ctx.fillText('S4', x0+tw+gap+8, y0+th+gap+14);
+}
+
+/* ===== Resize (charts + mapa + cop) ===== */
 function resizeAllCanvases(){
+  // dashboard
   sensors.forEach(s=>{
     if(!s.cvs) return;
     const parentW = Math.floor(s.cvs.parentElement.clientWidth);
@@ -471,6 +734,7 @@ function resizeAllCanvases(){
     s.ctx=ctx; s.W=W; s.H=H; drawChart(s);
   });
 
+  // mapa
   if(heatCvs){
     const wrapW = Math.floor(heatCvs.parentElement.clientWidth);
     const cssW = Math.max(300, Math.min(HEAT_MAX_PX, wrapW));
@@ -480,27 +744,56 @@ function resizeAllCanvases(){
     heatCvs.style.margin = '0 auto';
     if(currentView==='heatmap') drawHeatmap(true);
   }
+
+  // cop
+  if(copCvs){
+    const parentW = Math.floor(copCvs.parentElement.clientWidth);
+    const cssW = Math.max(260, Math.min(460, parentW));
+    const cssH = cssW;
+    const {ctx} = setupCanvas(copCvs, cssW, cssH);
+    copCtx = ctx;
+    if(currentView==='profile') computeProfile(), drawCoP(0.5,0.5,false);
+  }
 }
 
-/* ===== Loop de mapa ===== */
+/* ===== Loops ===== */
 (function heatLoop(){
   requestAnimationFrame(heatLoop);
   if(currentView==='heatmap' && heatDirty) drawHeatmap();
 })();
 function markHeatDirty(){ if(currentView==='heatmap') heatDirty = true; }
 
+(function profileLoop(){
+  requestAnimationFrame(profileLoop);
+  if(currentView==='profile' && profileDirty) { computeProfile(); profileDirty=false; }
+})();
+function markProfileDirty(){ if(currentView==='profile') profileDirty = true; }
+
 /* ===== Vistas ===== */
+function setActive(btn){ [btnProfile,btnDashboard,btnHeatmap].forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+function showProfile(){
+  profileSec.style.display='block';
+  dashboardSec.style.display='none';
+  heatmapSection.style.display='none';
+  currentView='profile'; setActive(btnProfile);
+  resizeAllCanvases(); profileDirty=true;
+}
 function showDashboard(){
-  cardsEl.style.display=''; chartsEl.style.display=''; heatmapSection.style.display='none';
-  btnHeatmap.textContent='Mapa'; currentView='dashboard';
+  profileSec.style.display='none';
+  dashboardSec.style.display='';
+  heatmapSection.style.display='none';
+  currentView='dashboard'; setActive(btnDashboard);
+  resizeAllCanvases();
 }
 function showHeatmap(){
-  cardsEl.style.display='none'; chartsEl.style.display='none'; heatmapSection.style.display='block';
-  btnHeatmap.textContent='Volver al dashboard'; currentView='heatmap';
+  profileSec.style.display='none';
+  dashboardSec.style.display='none';
+  heatmapSection.style.display='block';
+  currentView='heatmap'; setActive(btnHeatmap);
   resizeAllCanvases(); drawHeatmap(true);
 }
 
-/* ===== FX Portada: blobs que “respiran” siempre activos ===== */
+/* ===== FX Portada: blobs ===== */
 let fxCtx=null, fxW=0, fxH=0, fxRAF=0; const BLOBS=7; const blobs=[];
 function setupFX(){
   if(!bgfx) return;
@@ -560,15 +853,9 @@ function gotoApp(){
   const now = performance.now();
   sensors.forEach(s=>{
     s.lastHzTs=now; s.samples=0; s.min=Infinity; s.max=-Infinity; s.buf.fill(0);
-    s.kg=0; s.vkg=0;
-    document.getElementById(`kg-${s.id}`).textContent='0.000';
-    document.getElementById(`fill-${s.id}`).style.width='0%';
-    document.getElementById(`min-${s.id}`).textContent='0.000';
-    document.getElementById(`max-${s.id}`).textContent='0.000';
-    document.getElementById(`hz-${s.id}`).textContent='0.0';
-    drawChart(s);
+    s.kg=0; s.vkg=0; s.dRecent.length=0;
   });
-  showDashboard();
+  showProfile(); // Perfil primero
 }
 function goLogout(){
   disconnectWS(); stopDemo();
@@ -595,18 +882,26 @@ passEl.addEventListener('keyup', (e)=>{
 });
 userEl.addEventListener('keyup', (e)=>{ if(e.key==='Enter') passEl.focus(); });
 
-btnHeatmap.onclick = ()=>{ (currentView==='dashboard') ? showHeatmap() : showDashboard(); };
+// Nav
+btnProfile.onclick = showProfile;
+btnDashboard.onclick = showDashboard;
+btnHeatmap.onclick = showHeatmap;
+
+// Conexión
 btnConnect.onclick=()=>{ stopDemo(); connectWS(); };
 btnDisconnect.onclick=()=>{ disconnectWS(); };
 document.getElementById('btnLogout').onclick = goLogout;
 maxkgEl.addEventListener('input', ()=>{
   const v=Math.max(0.1, parseFloat(maxkgEl.value)||10);
   maxKg = v; localStorage.setItem('maxKg', v.toFixed(1));
-  sensors.forEach(drawChart); if(currentView==='heatmap') drawHeatmap(true);
+  sensors.forEach(drawChart);
+  if(currentView==='heatmap') drawHeatmap(true);
+  if(currentView==='profile') profileDirty=true;
 });
 
 /* ===== Init ===== */
 function renderUI(){
+  // cards
   cardsEl.innerHTML = sensors.map(s=>`
     <div class="card" id="card-${s.id}" role="region" aria-label="Indicadores del ${s.label}">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -621,6 +916,7 @@ function renderUI(){
       </div>
     </div>
   `).join('');
+  // charts
   chartsEl.innerHTML = sensors.map(s=>`
     <div class="chart" role="img" aria-label="Histórico ${s.label} de aproximadamente 20 segundos">
       <div class="label">Histórico ${s.label} (~20 s)</div>
@@ -631,9 +927,12 @@ function renderUI(){
   resizeAllCanvases();
 }
 
-// Portada FX: arranque continuo
+// FX portada
 setupFX();
 tickFX();
+
+/* ===== Perfil invalidation ===== */
+function markProfileDirty(){ if(currentView==='profile') profileDirty = true; }
 </script>
 </body>
 </html>
