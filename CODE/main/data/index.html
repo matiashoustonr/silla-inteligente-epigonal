@@ -22,7 +22,6 @@ body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,Sego
   filter:drop-shadow(0 10px 30px rgba(0,0,0,.35))}
 .brandTop{font-size:clamp(28px,6vw,56px)}
 .brandMid{font-size:clamp(16px,3vw,22px);color:#cfd6ea;opacity:.92;margin-top:-4px}
-
 .card-landing{background:linear-gradient(180deg,rgba(23,28,43,.9),rgba(23,28,43,.6));backdrop-filter:blur(6px);
   border:1px solid #293048;border-radius:16px;padding:12px 14px;display:inline-flex;gap:10px;align-items:center}
 .card-landing .dot{width:8px;height:8px;border-radius:999px;background:var(--good)}
@@ -103,7 +102,12 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
 .badge-warn{color:#2a1a00;background:rgba(255,179,0,.18);border:1px solid rgba(255,179,0,.35);padding:3px 8px;border-radius:999px;font-size:12px}
 .badge-bad{color:#2a0b10;background:rgba(239,95,107,.18);border:1px solid rgba(239,95,107,.35);padding:3px 8px;border-radius:999px;font-size:12px}
 
-.mbar{height:14px;background:#1a2234;border:1px solid #2a3147;border-radius:999px;overflow:hidden}
+.inline-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;font-weight:700;font-size:12px;border:1px solid transparent}
+.pill.warn{color:#2a1a00;background:rgba(255,179,0,.18);border-color:rgba(255,179,0,.35)}
+.pill.alarm{color:#2a0b10;background:rgba(239,95,107,.24);border-color:rgba(239,95,107,.7)}
+
+.mbar{position:relative;height:14px;background:#1a2234;border:1px solid #2a3147;border-radius:999px;overflow:hidden}
 .mbar .inner{height:100%;width:50%}
 .mbar .left{background:linear-gradient(90deg,#2a3248, var(--amber))}
 .mbar .right{background:linear-gradient(90deg,var(--amber), #2a3248)}
@@ -113,6 +117,13 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
 .mbar .tick{position:absolute;top:0;bottom:0;width:2px;background:#fff2;border-radius:1px;left:50%}
 
 #cop{display:block;width:100%;height:auto;background:#151b2d;border-radius:12px;border:1px solid #262f47}
+
+/* Parpadeo evidente */
+@keyframes blink {
+  0%,49%{ filter:none; box-shadow:0 0 0 rgba(239,95,107,0); }
+  50%,100%{ filter:brightness(1.6) saturate(1.6); box-shadow:0 0 18px rgba(239,95,107,.9); }
+}
+.blink{ animation:blink .7s linear infinite; }
 
 /* LOGO */
 #cornerLogo{position:fixed;right:18px;top:18px;width:120px;height:auto;opacity:.95;filter:drop-shadow(0 6px 20px rgba(0,0,0,.35));display:none;pointer-events:none}
@@ -205,10 +216,17 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
     <!-- PERFIL -->
     <section id="profile" aria-label="Perfil postural">
       <div class="grid3">
-        <div class="card">
+        <!-- Card Conclusión -->
+        <div class="card" id="profileCard">
           <div class="label">Conclusión</div>
           <div id="conclusion" class="value" style="font-size:34px;margin-top:8px">Sin carga</div>
           <div id="conclusionBadge" class="sub" style="margin-top:4px"></div>
+
+          <!-- NUEVO: texto compacto + alarma/contador -->
+          <div class="inline-row">
+            <span id="inlineLRFB" class="sub">Centro • Centro</span>
+            <span id="fwdTimerPill" class="pill" style="display:none"></span>
+          </div>
 
           <div class="row" style="margin-top:14px">
             <div style="flex:1">
@@ -231,6 +249,7 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
           </div>
         </div>
 
+        <!-- Card CoP -->
         <div class="card">
           <div class="label">Centro de presión (CoP)</div>
           <canvas id="cop" width="380" height="380"></canvas>
@@ -282,8 +301,8 @@ const LABEL_TOP = 30;
 const LABEL_BOTTOM = 54;
 
 /* FX landing (ajustables) */
-const FX_SPEED = 1.8;
-const FX_DRIFT = 1.6;
+const FX_SPEED = 2.4;
+const FX_DRIFT = 2;
 
 /* Refs DOM */
 const landing = document.getElementById('landing');
@@ -339,6 +358,10 @@ const kpiStab = document.getElementById('kpiStab');
 const copCvs = document.getElementById('cop');
 let copCtx = copCvs.getContext('2d');
 
+const inlineLRFB = document.getElementById('inlineLRFB');
+const fwdTimerPill = document.getElementById('fwdTimerPill');
+const profileCard = document.querySelector('#profile .grid3 .card:first-child');
+
 /* Estado */
 let currentView = 'profile'; // perfil por defecto
 const N = 4;
@@ -353,7 +376,7 @@ const sensors = Array.from({length:N}).map((_,i)=>({
   id:i, label:`S${i+1}`, kg:0, vkg:0,
   min:Infinity, max:-Infinity, samples:0, lastHzTs:0,
   buf:new Array(200).fill(0), W:0,H:0, ctx:null, cvs:null,
-  dRecent:[] // variación reciente para estabilidad
+  dRecent:[]
 }));
 
 function setStatus(ok,msg){
@@ -394,36 +417,18 @@ function pushSample(s, rawVal){
   const prev = s.vkg;
   s.kg = rawVal;
   s.vkg = s.vkg + EMA_ALPHA * (rawVal - s.vkg);
-  // estabilidad: guardar |delta|
   const d = Math.abs(s.vkg - prev);
-  s.dRecent.push(d); if(s.dRecent.length>60) s.dRecent.shift(); // ~3s si baseHz~20
+  s.dRecent.push(d); if(s.dRecent.length>60) s.dRecent.shift();
 
   s.buf.push(s.vkg); if(s.buf.length>200) s.buf.shift();
   drawChart(s);
 
   if(s.vkg < s.min) s.min = s.vkg;
   if(s.vkg > s.max) s.max = s.vkg;
-  const id = s.id;
-  const minEl = document.getElementById(`min-${id}`);
-  const maxEl = document.getElementById(`max-${id}`);
-  const kgEl  = document.getElementById(`kg-${id}`);
-  const fillEl= document.getElementById(`fill-${id}`);
-  const hzEl  = document.getElementById(`hz-${id}`);
-
-  if(minEl) minEl.textContent = s.min.toFixed(3);
-  if(maxEl) maxEl.textContent = s.max.toFixed(3);
 
   s.samples++; const now = performance.now();
-  if(now - s.lastHzTs >= 1000){
-    const hz = s.samples / ((now - s.lastHzTs)/1000);
-    if(hzEl) hzEl.textContent = hz.toFixed(1);
-    s.samples=0; s.lastHzTs = now;
-  }
+  if(now - s.lastHzTs >= 1000){ s.samples=0; s.lastHzTs = now; }
 
-  if(kgEl) kgEl.textContent = s.vkg.toFixed(3);
-  if(fillEl) fillEl.style.width = `${Math.min(s.vkg/maxKg,1)*100}%`;
-
-  // actualizar matrices/lecturas
   if(vS1 && vS2 && vS3 && vS4){
     vS1.textContent = (sensors[0]?.vkg||0).toFixed(2);
     vS2.textContent = (sensors[1]?.vkg||0).toFixed(2);
@@ -456,19 +461,43 @@ function connectWS(){
 }
 function disconnectWS(){ if(ws){ ws.close(); ws=null; } setStatus(false,'Desconectado'); }
 
+/* ===== DEMO: 0–10s centrado; 10–15s rampa; >15s fijo adelante ===== */
 function startDemo(){
   stopDemo(); setStatus(true,'Demo');
-  const baseHz=22; let last=performance.now(); const phase=[0,0.6,1.2,1.8];
+  const baseHz = 22;
+  let last = performance.now();
+  const t0 = performance.now();
+  let lockedBias = 0;
+
   function tick(now){
-    demoRAF=requestAnimationFrame(tick);
-    if(now-last < 1000/baseHz) return; last=now;
-    for(let i=0;i<sensors.length;i++){
-      const t=now/1000+phase[i];
-      const raw=Math.max(0,(Math.sin(t)*0.5+0.5)*maxKg*0.8 + (Math.random()*0.03));
-      pushSample(sensors[i], raw);
-    }
+    demoRAF = requestAnimationFrame(tick);
+    if (now - last < 1000/baseHz) return;
+    last = now;
+
+    const t = (now - t0) / 1000;
+
+    const base = 0.35 * maxKg;
+    let ramp = 0;
+    if (t <= 10) ramp = 0;
+    else if (t <= 15) ramp = (t - 10) / 5;
+    else ramp = 1;
+
+    const fBias = (0.44 * maxKg) * ramp;   // llega un poco más adelante
+    if (t > 15 && lockedBias === 0) lockedBias = fBias;
+
+    const lr = Math.sin(t * 0.6) * (0.03 * maxKg);
+    const noise = () => (Math.random() - 0.5) * (0.02 * maxKg);
+    const bias = (t > 15) ? lockedBias : fBias;
+
+    const vals = [
+      Math.max(0, base +  bias/2 - lr/2 + noise()), // S1
+      Math.max(0, base +  bias/2 + lr/2 + noise()), // S2
+      Math.max(0, base -  bias/2 - lr/2 + noise()), // S3
+      Math.max(0, base -  bias/2 + lr/2 + noise()), // S4
+    ];
+    for (let i=0; i<4; i++) pushSample(sensors[i], vals[i]);
   }
-  demoRAF=requestAnimationFrame(tick);
+  demoRAF = requestAnimationFrame(tick);
 }
 function stopDemo(){ if(demoRAF){ cancelAnimationFrame(demoRAF); demoRAF=0; } }
 
@@ -490,7 +519,6 @@ function amberRGB(t){
 /* ===== Heatmap (4 cuadrados independientes) ===== */
 let heatCtx = heatCvs.getContext('2d');
 let heatW=0, heatH=0, heatDirty=true, lastHeatTs=0;
-
 function roundRectPath(ctx, x,y,w,h,r){
   const rr = Math.min(r, w/2, h/2);
   ctx.beginPath();
@@ -504,29 +532,23 @@ function roundRectPath(ctx, x,y,w,h,r){
 function drawTile(ctx, x,y, w,h, value, label, pos='below'){
   const t = Math.max(0, Math.min(1, value/maxKg));
   const [r,g,b] = amberRGB(t);
-
   ctx.save();
   roundRectPath(ctx,x,y,w,h,TILE_RADIUS);
   ctx.fillStyle = `rgb(${r},${g},${b})`;
-  ctx.fill();
-  ctx.clip();
-
+  ctx.fill(); ctx.clip();
   const grd = ctx.createLinearGradient(x,y,x,y+h);
   grd.addColorStop(0,'rgba(255,255,255,0.10)');
   grd.addColorStop(0.6,'rgba(0,0,0,0.00)');
   grd.addColorStop(1,'rgba(0,0,0,0.20)');
   ctx.fillStyle = grd; ctx.fillRect(x,y,w,h);
   ctx.restore();
-
   ctx.strokeStyle='rgba(255,255,255,0.10)';
   ctx.lineWidth=1.2;
   roundRectPath(ctx,x,y,w,h,TILE_RADIUS); ctx.stroke();
-
   const fs = Math.max(16, Math.min(20, Math.round(w*0.13)));
   ctx.font = `700 ${fs}px ui-sans-serif, system-ui`;
   ctx.fillStyle = 'rgba(255,255,255,0.96)';
   ctx.textAlign = 'center';
-
   if(pos==='above'){
     ctx.textBaseline = 'bottom';
     ctx.fillText(`${label} ${value.toFixed(2)} kg`, Math.round(x + w/2)+.5, Math.round(y - 8)+.5);
@@ -541,11 +563,9 @@ function drawHeatmap(force=false){
   lastHeatTs = now; heatDirty=false;
 
   const ctx = heatCtx, W = heatW, H = heatH; ctx.clearRect(0,0,W,H);
-
   const x0 = HEAT_PAD, y0 = HEAT_PAD + LABEL_TOP;
   const w = W - HEAT_PAD*2;
   const h = H - HEAT_PAD*2 - LABEL_TOP - LABEL_BOTTOM;
-
   roundRectPath(ctx, x0, y0, w, h, HEAT_RADIUS);
   ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.stroke();
 
@@ -564,8 +584,56 @@ function drawHeatmap(force=false){
   drawTile(ctx, x0+tw+gap,   y0+th+gap,   tw, th, v4, 'below');
 }
 
-/* ===== PERFIL: análisis y CoP ===== */
-let profileDirty = true, lastProfileTs = 0;
+/* ===== PERFIL: análisis, alarma 10s y CoP ===== */
+let profileDirty = true;
+
+/* Estados de alarma */
+let fwdState = 'idle';    // 'idle' | 'warn' | 'alarm'
+let fwdEnterAt = 0;       // ms cuando entró a “Muy adelante”
+let fwdExitAt = 0;        // ms inicio de salida
+const ALARM_AFTER = 10_000;    // 10s
+const EXIT_DEBOUNCE = 1_500;   // 1.5s para reset estable
+
+function setBars(lrPos, fbPos){
+  const lrPerc = Math.round(lrPos*100);
+  const fbPerc = Math.round(fbPos*100);
+  if(barLR){ barLR.style.width = `${lrPerc}%`; barLR.className = 'inner ' + (lrPos>=0.5?'right':'left'); }
+  if(barFB){ barFB.style.width = `${fbPerc}%`; barFB.className = 'inner ' + (fbPos>=0.5?'front':'back'); }
+}
+function setConclusion(text, subtitle, kind){
+  if(conclusionEl) conclusionEl.textContent = text;
+  if(conclusionBadgeEl){
+    if(!subtitle){ conclusionBadgeEl.innerHTML=''; return; }
+    const cls = kind==='bad'?'badge-bad':kind==='warn'?'badge-warn':'badge-ok';
+    conclusionBadgeEl.innerHTML = `<span class="${cls}">${subtitle}</span>`;
+  }
+}
+/* Visual de la alarma/pastilla */
+function showFwdWarn(elapsedMs){
+  const s = Math.floor(elapsedMs/1000);
+  fwdTimerPill.style.display = 'inline-flex';
+  fwdTimerPill.className = 'pill warn';
+  fwdTimerPill.textContent = `Adelantado • ${s}s`;
+  fwdTimerPill.classList.remove('blink'); // sin parpadeo aún
+}
+function triggerFwdAlarm(){
+  fwdState = 'alarm';
+  fwdTimerPill.style.display = 'inline-flex';
+  fwdTimerPill.className = 'pill alarm blink'; // rojo + parpadeo
+  fwdTimerPill.textContent = `¡Muy adelante! • 10s`;
+}
+function updateFwdAlarmElapsed(elapsedMs){
+  const s = Math.floor(elapsedMs/1000);
+  fwdTimerPill.textContent = `¡Muy adelante! • ${s}s`;
+}
+function resetFwdAlert(){
+  fwdState = 'idle';
+  fwdEnterAt = 0;
+  fwdExitAt = 0;
+  fwdTimerPill.style.display = 'none';
+  fwdTimerPill.className = 'pill';
+  fwdTimerPill.classList.remove('blink');
+}
 
 function computeProfile(){
   const s1 = sensors[0]?.vkg||0;
@@ -574,24 +642,23 @@ function computeProfile(){
   const s4 = sensors[3]?.vkg||0;
   const total = s1+s2+s3+s4;
 
-  // KPIs
   if(kpiTotal) kpiTotal.textContent = total.toFixed(2);
 
-  // Estabilidad: promedio de deltas recientes (normalizado por maxKg)
+  // Estabilidad (promedio de cambios recientes)
   let mov = 0;
-  for(const s of sensors){
-    if(s.dRecent.length){
-      mov += s.dRecent.reduce((a,b)=>a+b,0)/s.dRecent.length;
-    }
-  }
+  for(const s of sensors){ if(s.dRecent.length){ mov += s.dRecent.reduce((a,b)=>a+b,0)/s.dRecent.length; } }
   mov = mov/Math.max(1,sensors.length);
-  const movN = Math.min(1, mov/(maxKg*0.03)); // ~3% de escala ≈ movimiento notable
+  const movN = Math.min(1, mov/(maxKg*0.03));
   if(kpiStab) kpiStab.textContent = movN<0.25 ? 'Alta' : movN<0.6 ? 'Media' : 'Baja';
 
   if(total < Math.max(0.6, maxKg*0.06)){ // sin carga
     setConclusion('Sin carga','', 'ok');
-    setBars(0.5,0.5,'—','—');
+    setBars(0.5,0.5);
     drawCoP(0.5,0.5,false);
+    resetFwdAlert();
+    if(inlineLRFB) inlineLRFB.textContent = 'Centro • Centro';
+    if(txtLR) txtLR.textContent = '—';
+    if(txtFB) txtFB.textContent = '—';
     return;
   }
 
@@ -604,9 +671,10 @@ function computeProfile(){
   const fb = (front - back) / total;  // + adelante, - atrás
 
   const lrAbs = Math.abs(lr), fbAbs = Math.abs(fb);
-  const TH_SOFT = 0.06, TH_STRONG = 0.12;
 
-  // Texto balance
+  // UMBRALES (holgados)
+  const TH_SOFT = 0.25, TH_STRONG = 0.50;
+
   let txtLRv = 'Centro';
   if(lr > TH_STRONG) txtLRv = 'Muy a la derecha';
   else if(lr > TH_SOFT) txtLRv = 'Leve a la derecha';
@@ -621,18 +689,16 @@ function computeProfile(){
 
   if(txtLR) txtLR.textContent = `${txtLRv} (${(lr*100).toFixed(0)}%)`;
   if(txtFB) txtFB.textContent = `${txtFBv} (${(fb*100).toFixed(0)}%)`;
+  if(inlineLRFB){ inlineLRFB.textContent = `${txtLRv} • ${txtFBv}`; }
 
-  // Barras (0..1, 0.5 = centro)
   const toHalf = (v)=> Math.max(0, Math.min(1, 0.5 + v/2));
-  setBars(toHalf(lr), toHalf(fb), txtLRv, txtFBv);
+  setBars(toHalf(lr), toHalf(fb));
 
-  // Conclusión combinada
   let conclusion = 'Bien sentado';
   let badgeKind = 'ok';
   if(lrAbs>TH_STRONG || fbAbs>TH_STRONG){ conclusion = 'Necesita corrección'; badgeKind='bad'; }
   else if(lrAbs>TH_SOFT || fbAbs>TH_SOFT){ conclusion = 'Ligeramente desbalanceado'; badgeKind='warn'; }
 
-  // Matiz dirección principal
   const dir = (()=>{
     if(lrAbs>=fbAbs){
       if(lr>TH_SOFT) return ' (a la derecha)';
@@ -643,30 +709,47 @@ function computeProfile(){
     }
     return '';
   })();
-
   setConclusion(conclusion+dir, txtLRv+' • '+txtFBv, badgeKind);
 
-  // CoP: x=Right/(L+R), y=Front/(F+B)
+  // Alarma: 10 s en “Muy adelante”
+  const nowMs = performance.now();
+  if (fb > TH_STRONG) {
+    if (fwdState === 'idle') {
+      fwdState = 'warn';
+      fwdEnterAt = nowMs;
+      fwdExitAt = 0;
+      showFwdWarn(0);
+    } else if (fwdState === 'warn') {
+      const elapsed = nowMs - fwdEnterAt;
+      if (elapsed >= ALARM_AFTER) {
+        triggerFwdAlarm();
+      } else {
+        showFwdWarn(elapsed);
+      }
+    } else if (fwdState === 'alarm') {
+      const elapsed = nowMs - fwdEnterAt;
+      updateFwdAlarmElapsed(elapsed);
+    }
+  } else if (fb <= TH_SOFT) {
+    // salir solo tras 1.5s fuera de “Muy adelante”
+    if (fwdState === 'warn' || fwdState === 'alarm') {
+      if (fwdExitAt === 0) fwdExitAt = nowMs;
+      if (nowMs - fwdExitAt >= EXIT_DEBOUNCE) {
+        resetFwdAlert();
+      } else {
+        if (fwdState === 'warn') showFwdWarn(nowMs - fwdEnterAt);
+        else updateFwdAlarmElapsed(nowMs - fwdEnterAt);
+      }
+    }
+  } else {
+    // zona intermedia: mantener estado
+    if (fwdState === 'warn') showFwdWarn(nowMs - fwdEnterAt);
+    if (fwdState === 'alarm') updateFwdAlarmElapsed(nowMs - fwdEnterAt);
+  }
+
   const x = right/Math.max(1e-6,(left+right));
   const y = front/Math.max(1e-6,(front+back));
   drawCoP(x,y,true);
-}
-
-function setBars(lrPos, fbPos, txtLRv, txtFBv){
-  // lrPos/fbPos en [0..1], 0.5 centro
-  const lrPerc = Math.round(lrPos*100);
-  const fbPerc = Math.round(fbPos*100);
-  if(barLR){ barLR.style.width = `${lrPerc}%`; barLR.className = 'inner ' + (lrPos>=0.5?'right':'left'); }
-  if(barFB){ barFB.style.width = `${fbPerc}%`; barFB.className = 'inner ' + (fbPos>=0.5?'front':'back'); }
-}
-
-function setConclusion(text, subtitle, kind){
-  if(conclusionEl) conclusionEl.textContent = text;
-  if(conclusionBadgeEl){
-    if(!subtitle){ conclusionBadgeEl.innerHTML=''; return; }
-    const cls = kind==='bad'?'badge-bad':kind==='warn'?'badge-warn':'badge-ok';
-    conclusionBadgeEl.innerHTML = `<span class="${cls}">${subtitle}</span>`;
-  }
 }
 
 function drawCoP(x,y,hasLoad){
@@ -674,26 +757,19 @@ function drawCoP(x,y,hasLoad){
   ctx.setTransform(DPR,0,0,DPR,0,0);
   ctx.clearRect(0,0,W,H);
 
-  // cuadricula y marco
   const pad=14, r=12, x0=pad, y0=pad, w=W-pad*2, h=H-pad*2;
   roundRectPath(ctx,x0,y0,w,h,r);
   ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.stroke();
 
-  // separadores
   ctx.globalAlpha=0.25; ctx.strokeStyle='#0b1020'; ctx.lineWidth=2;
   ctx.beginPath();
   ctx.moveTo(Math.round(x0+w/2)+.5, y0);   ctx.lineTo(Math.round(x0+w/2)+.5, y0+h);
   ctx.moveTo(x0, Math.round(y0+h/2)+.5);   ctx.lineTo(x0+w, Math.round(y0+h/2)+.5);
   ctx.stroke(); ctx.globalAlpha=1;
 
-  // tiles suaves
   const gap=10, tw=(w-gap)/2, th=(h-gap)/2;
-  const vals=[
-    sensors[0]?.vkg||0, sensors[1]?.vkg||0, sensors[2]?.vkg||0, sensors[3]?.vkg||0
-  ];
-  const boxes=[
-    [x0, y0], [x0+tw+gap, y0], [x0, y0+th+gap], [x0+tw+gap, y0+th+gap]
-  ];
+  const vals=[sensors[0]?.vkg||0, sensors[1]?.vkg||0, sensors[2]?.vkg||0, sensors[3]?.vkg||0];
+  const boxes=[[x0,y0],[x0+tw+gap,y0],[x0,y0+th+gap],[x0+tw+gap,y0+th+gap]];
   for(let i=0;i<4;i++){
     const t=Math.max(0,Math.min(1, vals[i]/maxKg));
     const [r,g,b]=amberRGB(t);
@@ -702,10 +778,9 @@ function drawCoP(x,y,hasLoad){
     ctx.fill();
   }
 
-  // CoP
   if(hasLoad){
     const cx = x0 + x*w;
-    const cy = y0 + (1-y)*h; // y=1 arriba (front)
+    const cy = y0 + (1-y)*h;
     ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=6;
     ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.arc(cx,cy,6,0,Math.PI*2); ctx.fill();
     ctx.shadowBlur=0;
@@ -714,7 +789,6 @@ function drawCoP(x,y,hasLoad){
     ctx.fillText('Sin carga', x0+8, y0+18);
   }
 
-  // labels
   ctx.fillStyle='#9aa3b2'; ctx.font='12px system-ui';
   ctx.fillText('S1', x0+8, y0+14);
   ctx.fillText('S2', x0+tw+gap+8, y0+14);
@@ -724,7 +798,6 @@ function drawCoP(x,y,hasLoad){
 
 /* ===== Resize (charts + mapa + cop) ===== */
 function resizeAllCanvases(){
-  // dashboard
   sensors.forEach(s=>{
     if(!s.cvs) return;
     const parentW = Math.floor(s.cvs.parentElement.clientWidth);
@@ -734,7 +807,6 @@ function resizeAllCanvases(){
     s.ctx=ctx; s.W=W; s.H=H; drawChart(s);
   });
 
-  // mapa
   if(heatCvs){
     const wrapW = Math.floor(heatCvs.parentElement.clientWidth);
     const cssW = Math.max(300, Math.min(HEAT_MAX_PX, wrapW));
@@ -745,14 +817,13 @@ function resizeAllCanvases(){
     if(currentView==='heatmap') drawHeatmap(true);
   }
 
-  // cop
   if(copCvs){
     const parentW = Math.floor(copCvs.parentElement.clientWidth);
     const cssW = Math.max(260, Math.min(460, parentW));
     const cssH = cssW;
     const {ctx} = setupCanvas(copCvs, cssW, cssH);
     copCtx = ctx;
-    if(currentView==='profile') computeProfile(), drawCoP(0.5,0.5,false);
+    if(currentView==='profile') { profileDirty = true; computeProfile(); }
   }
 }
 
@@ -794,7 +865,7 @@ function showHeatmap(){
 }
 
 /* ===== FX Portada: blobs ===== */
-let fxCtx=null, fxW=0, fxH=0, fxRAF=0; const BLOBS=7; const blobs=[];
+let fxCtx2=null, fxW=0, fxH=0, fxRAF=0; const BLOBS=7; const blobs=[];
 function setupFX(){
   if(!bgfx) return;
   const rect=bgfx.getBoundingClientRect();
@@ -802,8 +873,8 @@ function setupFX(){
   bgfx.height=Math.round(rect.height*DPR);
   bgfx.style.width=rect.width+'px';
   bgfx.style.height=rect.height+'px';
-  fxCtx=bgfx.getContext('2d');
-  fxCtx.setTransform(DPR,0,0,DPR,0,0);
+  fxCtx2=bgfx.getContext('2d');
+  fxCtx2.setTransform(DPR,0,0,DPR,0,0);
   fxW=rect.width; fxH=rect.height;
   blobs.length=0;
   for(let i=0;i<BLOBS;i++){
@@ -825,23 +896,23 @@ function setupFX(){
 }
 function tickFX(){
   fxRAF=requestAnimationFrame(tickFX);
-  if(!fxCtx) return;
-  fxCtx.clearRect(0,0,fxW,fxH);
-  fxCtx.globalCompositeOperation='lighter';
+  if(!fxCtx2) return;
+  fxCtx2.clearRect(0,0,fxW,fxH);
+  fxCtx2.globalCompositeOperation='lighter';
   for(const b of blobs){
     b.phase += b.speed;
     const a = Math.max(0, Math.min(1, b.baseA + b.ampA*(0.5+0.5*Math.sin(b.phase))));
     const r = Math.max(20, b.baseR + b.ampR*(0.5+0.5*Math.sin(b.phase*0.9+0.7)));
-    const grd=fxCtx.createRadialGradient(b.x,b.y,0,b.x,b.y,r);
+    const grd=fxCtx2.createRadialGradient(b.x,b.y,0,b.x,b.y,r);
     const c1=`hsla(${b.hue} ${b.sat}% 55% / ${a})`;
     const c0=`hsla(${b.hue} ${b.sat}% 55% / 0)`;
     grd.addColorStop(0,c1); grd.addColorStop(1,c0);
-    fxCtx.fillStyle=grd; fxCtx.beginPath(); fxCtx.arc(b.x,b.y,r,0,Math.PI*2); fxCtx.fill();
+    fxCtx2.fillStyle=grd; fxCtx2.beginPath(); fxCtx2.arc(b.x,b.y,r,0,Math.PI*2); fxCtx2.fill();
     b.x+=b.vx; b.y+=b.vy;
     if(b.x<-120||b.x>fxW+120) b.vx*=-1;
     if(b.y<-120||b.y>fxH+120) b.vy*=-1;
   }
-  fxCtx.globalCompositeOperation='source-over';
+  fxCtx2.globalCompositeOperation='source-over';
 }
 window.addEventListener('resize', ()=>{ if(landing && landing.style.display!=='none'){ setupFX(); } resizeAllCanvases(); });
 
