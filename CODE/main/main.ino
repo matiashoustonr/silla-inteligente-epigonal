@@ -44,6 +44,16 @@ uint8_t  prevL = 1, prevR = 1;
 
 // ======================= Vibrador ===========================
 #define PIN_VIB 43   // GPIO43 para el motor vibrador
+
+// Control remoto de vibración (desde el frontend)
+bool         remoteVibrationEnabled = false;   // true = vibrar (intermitente)
+static bool  vibCurrentOn           = false;   // estado actual del pin
+static unsigned long vibLastToggleMs = 0;
+const unsigned long VIB_PERIOD_MS    = 500;    // 0.5 s ON / 0.5 s OFF
+
+// Margen de seguridad al arrancar (para que no vibre durante el splash)
+unsigned long bootMs = 0;
+const unsigned long VIB_BOOT_GRACE_MS = 4000;  // 4 s
 // =============================================================
 
 
@@ -259,7 +269,7 @@ void loadCal() {
   }
 }
 
-// Lectura en kg SOLO para FSR1 (como antes, para WS)
+// Lectura en kg SOLO para FSR1 (como antes, para WS legacy)
 float readKg() {
   float a = readADCavg();
   ema_adc = (ema_adc == 0.0f) ? a : (ALPHA * a + (1.0f - ALPHA) * ema_adc);
@@ -457,7 +467,7 @@ void fsrMonitorTask() {
   if (screenMode != SCREEN_MONITOR) return;
 
   uint32_t now = millis();
-  // Actualiza la pantalla ~5 Hz para que se vea más suave y sin tanto parpadeo
+  // Actualiza la pantalla ~5 Hz para que se vea suave y sin parpadeo
   if (now - lastFSRscreenMs < 200) return;
   lastFSRscreenMs = now;
 
@@ -486,11 +496,110 @@ void toggleScreen() {
 // =============================================================
 
 
+// ============== Tarea de vibración (no bloqueante) ==========
+void updateVibrationTask() {
+  unsigned long now = millis();
+
+  // Nunca vibrar durante los primeros segundos (splash, etc.)
+  if (now - bootMs < VIB_BOOT_GRACE_MS) {
+    if (vibCurrentOn) {
+      digitalWrite(PIN_VIB, LOW);
+      vibCurrentOn = false;
+    }
+    return;
+  }
+
+  // Si el frontend no está pidiendo vibrar, aseguramos apagado
+  if (!remoteVibrationEnabled) {
+    if (vibCurrentOn) {
+      digitalWrite(PIN_VIB, LOW);
+      vibCurrentOn = false;
+    }
+    return;
+  }
+
+  // Vibración intermitente: 0.5 s ON / 0.5 s OFF
+  if (now - vibLastToggleMs >= VIB_PERIOD_MS) {
+    vibLastToggleMs = now;
+    vibCurrentOn = !vibCurrentOn;
+    digitalWrite(PIN_VIB, vibCurrentOn ? HIGH : LOW);
+  }
+}
+// =============================================================
+
+
+// ============== WebSocket: recepción de vib ==================
+void onWsEvent(AsyncWebSocket *server,
+               AsyncWebSocketClient *client,
+               AwsEventType type,
+               void *arg,
+               uint8_t *data,
+               size_t len) {
+  switch (type) {
+    case WS_EVT_CONNECT:
+      LOGF("WS: cliente %u conectado\n", client->id());
+      break;
+
+    case WS_EVT_DISCONNECT:
+      LOGF("WS: cliente %u desconectado\n", client->id());
+      break;
+
+    case WS_EVT_DATA: {
+      AwsFrameInfo *info = (AwsFrameInfo*)arg;
+      if (!info->final || info->opcode != WS_TEXT) return;
+
+      String msg;
+      msg.reserve(len + 1);
+      for (size_t i = 0; i < len; i++) {
+        msg += (char)data[i];
+      }
+      msg.trim();
+
+      // Esperamos cosas tipo: {"vib":1} o {"vib":0}
+      int idx = msg.indexOf("\"vib\"");
+      if (idx >= 0) {
+        int colon = msg.indexOf(':', idx);
+        if (colon > 0) {
+          String val = msg.substring(colon + 1);
+          val.trim();
+          int comma = val.indexOf(',');
+          if (comma >= 0) val = val.substring(0, comma);
+          int brace = val.indexOf('}');
+          if (brace >= 0) val = val.substring(0, brace);
+          val.trim();
+
+          int iv = val.toInt();
+          remoteVibrationEnabled = (iv != 0);
+
+          if (!remoteVibrationEnabled) {
+            // apagar inmediatamente si nos envían vib=0
+            digitalWrite(PIN_VIB, LOW);
+            vibCurrentOn = false;
+          }
+
+          LOGF("WS vib=%d -> remoteVibrationEnabled=%d\n", iv, remoteVibrationEnabled ? 1 : 0);
+        }
+      }
+
+      break;
+    }
+
+    case WS_EVT_PONG:
+    case WS_EVT_ERROR:
+      break;
+  }
+}
+// =============================================================
+
+
 // ======================= Setup / Loop ======================
 void setup() {
   // 🔹 Vibrador: APAGARLO LO PRIMERO DE TODO
   digitalWrite(PIN_VIB, LOW);   // Prepara el latch en LOW
   pinMode(PIN_VIB, OUTPUT);     // Configura como salida (ya en LOW)
+  vibCurrentOn = false;
+  remoteVibrationEnabled = false;
+  bootMs = millis();
 
   // ================== TFT / Consola ==================
   tft.init();
@@ -500,10 +609,7 @@ void setup() {
   tft.fillScreen(TFT_BLACK);
 
   console_set_style_normal();
-  consoleX = 0; 
-  consoleY = 0; 
-  consoleW = tft.width(); 
-  consoleH = tft.height();
+  consoleX = 0; consoleY = 0; consoleW = tft.width(); consoleH = tft.height();
   console_clear();
 
   scrW = tft.width();
@@ -519,14 +625,14 @@ void setup() {
   prevL = digitalRead(BTN_LEFT);
   prevR = digitalRead(BTN_RIGHT);
 
-  // (Por seguridad extra, lo dejamos apagado de nuevo,
-  //  pero ya debería estar en LOW desde el inicio)
+  // Por seguridad, aseguramos vibrador apagado
   digitalWrite(PIN_VIB, LOW);
+  vibCurrentOn = false;
 
   // ================== Serial / Mensajes ==================
   Serial.begin(115200);
   LOGLN("");
-  LOGLN("FSR → kg (TARE/CAL/SAVE/LOAD, monitor 4 FSR, vibrador apagado)");
+  LOGLN("FSR → kg (TARE/CAL/SAVE/LOAD, monitor 4 FSR, vibrador remoto)");
   LOGLN("KEY2: Consola ↔ Monitor FSR");
   LOGLN("KEY1: Reintentar WiFi");
 
@@ -538,12 +644,12 @@ void setup() {
   // ================== WiFi / WebSocket ==================
   wifi_begin_attempt(8000);
 
-  ws.onEvent([](AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType, void*, uint8_t*, size_t){});
+  // Ahora el WebSocket maneja también mensajes de vibración
+  ws.onEvent(onWsEvent);
   server.addHandler(&ws);
   server.begin();
   LOGLN("Servidor WS listo en /ws");
 }
-
 
 void loop() {
   uint32_t now = millis();
@@ -568,12 +674,25 @@ void loop() {
   wifi_task_step();
   fsrMonitorTask();   // Actualiza la pantalla de S1..S4
 
+  // ===== Envío WebSocket: 4 sensores en un solo JSON =====
   static unsigned long tSend = 0;
-  if (wifiConnected && (millis() - tSend > 50)) {
+  if (wifiConnected && (millis() - tSend > 50)) {  // ~20 Hz
     tSend = millis();
-    float kg = readKg();   // FSR1 por compatibilidad con WS
-    char msg[32];
-    snprintf(msg, sizeof(msg), "{\"kg\":%.3f}", kg);
+
+    float k1 = readKgFromPin(PIN_FSR1);
+    float k2 = readKgFromPin(PIN_FSR2);
+    float k3 = readKgFromPin(PIN_FSR3);
+    float k4 = readKgFromPin(PIN_FSR4);
+
+    char msg[128];
+    // Formato que el frontend ya sabe interpretar: obj.s = [S1,S2,S3,S4]
+    snprintf(msg, sizeof(msg),
+             "{\"s\":[%.3f,%.3f,%.3f,%.3f]}",
+             k1, k2, k3, k4);
+
     ws.textAll(msg);
   }
+
+  // ===== Tarea de vibración (intermitente 0.5 s) =====
+  updateVibrationTask();
 }

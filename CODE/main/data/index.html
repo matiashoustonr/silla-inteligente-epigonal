@@ -365,7 +365,7 @@ const profileCard = document.querySelector('#profile .grid3 .card:first-child');
 /* Estado */
 let currentView = 'profile'; // perfil por defecto
 const N = 4;
-let ws = null, demoRAF = 0;
+let ws = null, demoRAF = 0, vibOn = false;  // ← añadido vibOn
 let maxKg = parseFloat(localStorage.getItem('maxKg') || maxkgEl.value);
 if (!isFinite(maxKg) || maxKg <= 0) maxKg = 10.0;
 maxkgEl.value = maxKg.toFixed(1);
@@ -460,6 +460,23 @@ function connectWS(){
   ws.onmessage = (e)=>{ try{ handleMessage(JSON.parse(e.data)); }catch{} };
 }
 function disconnectWS(){ if(ws){ ws.close(); ws=null; } setStatus(false,'Desconectado'); }
+
+/* ===== Comando vibrador hacia la LilyGO ===== */
+function sendVib(active){
+  // No hay WebSocket abierto → no hacemos nada
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+  const desired = !!active;
+  // Evitar mandar el mismo estado repetido
+  if (desired === vibOn) return;
+
+  vibOn = desired;
+  try {
+    ws.send(JSON.stringify({ vib: desired ? 1 : 0 }));
+  } catch(e){
+    // Si falla el envío, simplemente lo ignoramos
+  }
+}
 
 /* ===== DEMO: 0–10s centrado; 10–15s rampa; >15s fijo adelante ===== */
 function startDemo(){
@@ -616,16 +633,24 @@ function showFwdWarn(elapsedMs){
   fwdTimerPill.textContent = `Adelantado • ${s}s`;
   fwdTimerPill.classList.remove('blink'); // sin parpadeo aún
 }
+
+/* ← MODIFICADA: ahora también enciende vibrador */
 function triggerFwdAlarm(){
   fwdState = 'alarm';
   fwdTimerPill.style.display = 'inline-flex';
   fwdTimerPill.className = 'pill alarm blink'; // rojo + parpadeo
   fwdTimerPill.textContent = `¡Muy adelante! • 10s`;
+
+  // Encender vibrador en la LilyGO
+  sendVib(true);
 }
+
 function updateFwdAlarmElapsed(elapsedMs){
   const s = Math.floor(elapsedMs/1000);
   fwdTimerPill.textContent = `¡Muy adelante! • ${s}s`;
 }
+
+/* ← MODIFICADA: ahora también apaga vibrador */
 function resetFwdAlert(){
   fwdState = 'idle';
   fwdEnterAt = 0;
@@ -633,6 +658,9 @@ function resetFwdAlert(){
   fwdTimerPill.style.display = 'none';
   fwdTimerPill.className = 'pill';
   fwdTimerPill.classList.remove('blink');
+
+  // Apagar vibrador al salir de la zona roja
+  sendVib(false);
 }
 
 function computeProfile(){
@@ -1002,7 +1030,7 @@ function renderUI(){
 setupFX();
 tickFX();
 
-/* ===== Perfil invalidation ===== */
+/* ===== Perfil invalidation (segunda definición, se mantiene igual que tu código) ===== */
 function markProfileDirty(){ if(currentView==='profile') profileDirty = true; }
 </script>
 </body>
