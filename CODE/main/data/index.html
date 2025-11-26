@@ -43,7 +43,7 @@ button.secondary{background:#24304a;color:var(--fg)}
 .input-row input[type=text], .input-row input[type=password]{flex:1}
 input[type=text],input[type=password],input[type=number]{background:#0d1220;border:1px solid #2b3348;color:#eef1ff;padding:12px;border-radius:10px;outline:none}
 #caps{color:#ffd54a;display:none;font-size:12px}
-.error{color:var(--bad);font-size:13px;min-height:18px}
+.error{color:#ef5f6b;font-size:13px;min-height:18px}
 .hint{font-size:12px;color:var(--muted);text-align:center;margin-top:2px}
 
 /* APP */
@@ -125,6 +125,16 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
 }
 .blink{ animation:blink .7s linear infinite; }
 
+/* ===== GUÍA ===== */
+#guide{display:none;margin-top:16px}
+.guide-grid{display:grid;grid-template-columns:2fr 1.1fr;gap:16px}
+@media (max-width: 900px){ .guide-grid{grid-template-columns:1fr} }
+.guide-title{font-size:20px;font-weight:700;margin-bottom:4px}
+.guide-sub{font-size:14px;color:var(--muted);margin-bottom:12px}
+.guide-list{margin:0;padding-left:18px;font-size:14px;color:#d7def4}
+.guide-list li{margin-bottom:6px}
+.guide-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;border:1px solid rgba(106,166,255,.4);background:rgba(106,166,255,.12);font-size:12px;color:#ced7ff}
+
 /* LOGO */
 #cornerLogo{position:fixed;right:18px;top:18px;width:120px;height:auto;opacity:.95;filter:drop-shadow(0 6px 20px rgba(0,0,0,.35));display:none;pointer-events:none}
 @media (max-width:560px){ #cornerLogo{width:90px} }
@@ -182,7 +192,7 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
     <header>
       <div>
         <h1 id="appTitle">FSR Live <span class="badge">suite</span></h1>
-        <div class="help">Navega: Perfil • Dashboard • Mapa</div>
+        <div class="help">Navega: Perfil • Dashboard • Mapa • Guía</div>
       </div>
 
       <div style="display:flex;gap:10px;align-items:center">
@@ -193,9 +203,10 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
 
         <!-- NAV -->
         <div class="nav" role="tablist" aria-label="Navegación principal">
-          <button id="btnProfile" class="secondary active" role="tab" aria-selected="true">Perfil</button>
-          <button id="btnDashboard" class="secondary" role="tab" aria-selected="false">Dashboard</button>
-          <button id="btnHeatmap" class="secondary" role="tab" aria-selected="false">Mapa</button>
+          <button id="btnProfile"   class="secondary active" role="tab" aria-selected="true">Perfil</button>
+          <button id="btnDashboard" class="secondary"        role="tab" aria-selected="false">Dashboard</button>
+          <button id="btnHeatmap"   class="secondary"        role="tab" aria-selected="false">Mapa</button>
+          <button id="btnGuide"     class="secondary"        role="tab" aria-selected="false">Guía</button>
         </div>
 
         <button id="btnLogout" class="secondary" aria-label="Cerrar sesión">Salir</button>
@@ -222,7 +233,7 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
           <div id="conclusion" class="value" style="font-size:34px;margin-top:8px">Sin carga</div>
           <div id="conclusionBadge" class="sub" style="margin-top:4px"></div>
 
-          <!-- NUEVO: texto compacto + alarma/contador -->
+          <!-- Texto compacto + alarma/contador -->
           <div class="inline-row">
             <span id="inlineLRFB" class="sub">Centro • Centro</span>
             <span id="fwdTimerPill" class="pill" style="display:none"></span>
@@ -281,7 +292,68 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;background:#151b2
       </div>
     </section>
 
-    <footer style="margin-top:18px">Tip: navega con Perfil • Dashboard • Mapa.</footer>
+    <!-- GUÍA -->
+    <section id="guide" aria-label="Guía de postura y ergonomía">
+      <div class="card">
+        <div class="guide-title">Guía rápida para sentarte mejor</div>
+        <div class="guide-sub">
+          Esta sección no mide ni vibra: solo te da contexto para interpretar lo que ves en <b>Perfil</b> y <b>Mapa</b>
+          y ayudarte a construir un hábito de postura más estable.
+        </div>
+        <div class="guide-grid">
+          <!-- Columna izquierda: cómo sentarse -->
+          <div class="card" style="background:#111728;">
+            <div class="guide-pill">Paso a paso</div>
+            <h3 style="margin:10px 0 6px;font-size:17px;">1. Pies y apoyo de base</h3>
+            <ul class="guide-list">
+              <li>Apoya <b>ambos pies</b> en el suelo o en un apoyo estable.</li>
+              <li>Evita cruzar las piernas mucho tiempo: suele desplazar el peso hacia un lado.</li>
+              <li>Piensa en una base “ancha”: pies separados al ancho de caderas.</li>
+            </ul>
+
+            <h3 style="margin:10px 0 6px;font-size:17px;">2. Pelvis y columna</h3>
+            <ul class="guide-list">
+              <li>Siéntate sobre los <b>huesos isquiones</b> (no sobre la zona baja de la espalda).</li>
+              <li>Imagina que la columna se alarga hacia arriba, sin “forzar” el pecho.</li>
+              <li>Evita estar mucho tiempo “derritido” hacia adelante: es lo que la app marcará como <b>muy adelante</b>.</li>
+            </ul>
+
+            <h3 style="margin:10px 0 6px;font-size:17px;">3. Cabeza, hombros y pantalla</h3>
+            <ul class="guide-list">
+              <li>La cabeza debería estar aproximadamente sobre los hombros, no muy adelantada.</li>
+              <li>Relaja hombros: ni encogidos hacia las orejas, ni excesivamente hacia atrás.</li>
+              <li>Ajusta la pantalla para no tener que empujar el tronco hacia adelante para verla.</li>
+            </ul>
+          </div>
+
+          <!-- Columna derecha: beneficios + datos -->
+          <div class="card" style="background:#111728;">
+            <div class="guide-pill">Por qué importa</div>
+            <h3 style="margin:10px 0 6px;font-size:17px;">Beneficios de repartir mejor el peso</h3>
+            <ul class="guide-list">
+              <li>Una postura más centrada suele asociarse a <b>menos fatiga muscular</b> a lo largo del día.</li>
+              <li>Reducir el tiempo en posturas extremas (muy adelante o muy a un lado) disminuye la carga repetida en la zona lumbar.</li>
+              <li>Pequeños ajustes mantenidos en el tiempo tienen más impacto que cambios bruscos de un solo día.</li>
+            </ul>
+
+            <h3 style="margin:12px 0 6px;font-size:17px;">Cómo usar esta app junto a la guía</h3>
+            <ul class="guide-list">
+              <li>Primero, siéntate como “te parece cómodo” y mira el <b>Perfil</b>: ¿estás centrado, adelante, atrás?</li>
+              <li>Haz un ajuste pequeño (por ejemplo, acercar la espalda al respaldo) y observa cómo cambia el centro de presión.</li>
+              <li>Si ves con frecuencia el aviso de <b>“Muy adelante”</b> y la vibración, úsalo como recordatorio para volver al rango más neutro.</li>
+              <li>La idea no es estar rígido, sino <b>oscilar alrededor de una postura más equilibrada</b>.</li>
+            </ul>
+
+            <p class="guide-sub" style="margin-top:12px;">
+              Esta guía no reemplaza recomendaciones médicas ni de kinesiología.  
+              Si tienes dolor o molestias persistentes, es buena idea consultar con un profesional.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer style="margin-top:18px">Tip: navega con Perfil • Dashboard • Mapa • Guía.</footer>
   </div>
 </section>
 
@@ -327,13 +399,15 @@ const statusTxt = document.getElementById('statusTxt');
 const dot = document.getElementById('dot');
 
 /* Nav */
-const btnProfile = document.getElementById('btnProfile');
+const btnProfile   = document.getElementById('btnProfile');
 const btnDashboard = document.getElementById('btnDashboard');
-const btnHeatmap = document.getElementById('btnHeatmap');
+const btnHeatmap   = document.getElementById('btnHeatmap');
+const btnGuide     = document.getElementById('btnGuide');
 
-const profileSec = document.getElementById('profile');
+const profileSec   = document.getElementById('profile');
 const dashboardSec = document.getElementById('dashboard');
 const heatmapSection = document.getElementById('heatmap');
+const guideSec     = document.getElementById('guide');
 
 /* Dashboard canvases */
 const cardsEl = document.getElementById('cards');
@@ -365,7 +439,7 @@ const profileCard = document.querySelector('#profile .grid3 .card:first-child');
 /* Estado */
 let currentView = 'profile'; // perfil por defecto
 const N = 4;
-let ws = null, demoRAF = 0, vibOn = false;  // ← añadido vibOn
+let ws = null, demoRAF = 0, vibOn = false;
 let maxKg = parseFloat(localStorage.getItem('maxKg') || maxkgEl.value);
 if (!isFinite(maxKg) || maxKg <= 0) maxKg = 10.0;
 maxkgEl.value = maxKg.toFixed(1);
@@ -463,22 +537,18 @@ function disconnectWS(){ if(ws){ ws.close(); ws=null; } setStatus(false,'Descone
 
 /* ===== Comando vibrador hacia la LilyGO ===== */
 function sendVib(active){
-  // No hay WebSocket abierto → no hacemos nada
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
-
   const desired = !!active;
-  // Evitar mandar el mismo estado repetido
   if (desired === vibOn) return;
-
   vibOn = desired;
   try {
     ws.send(JSON.stringify({ vib: desired ? 1 : 0 }));
   } catch(e){
-    // Si falla el envío, simplemente lo ignoramos
+    // ignorar error de envío
   }
 }
 
-/* ===== DEMO: 0–10s centrado; 10–15s rampa; >15s fijo adelante ===== */
+/* ===== DEMO ===== */
 function startDemo(){
   stopDemo(); setStatus(true,'Demo');
   const baseHz = 22;
@@ -499,7 +569,7 @@ function startDemo(){
     else if (t <= 15) ramp = (t - 10) / 5;
     else ramp = 1;
 
-    const fBias = (0.44 * maxKg) * ramp;   // llega un poco más adelante
+    const fBias = (0.44 * maxKg) * ramp;
     if (t > 15 && lockedBias === 0) lockedBias = fBias;
 
     const lr = Math.sin(t * 0.6) * (0.03 * maxKg);
@@ -631,14 +701,14 @@ function showFwdWarn(elapsedMs){
   fwdTimerPill.style.display = 'inline-flex';
   fwdTimerPill.className = 'pill warn';
   fwdTimerPill.textContent = `Adelantado • ${s}s`;
-  fwdTimerPill.classList.remove('blink'); // sin parpadeo aún
+  fwdTimerPill.classList.remove('blink');
 }
 
-/* ← MODIFICADA: ahora también enciende vibrador */
+/* Al entrar a alarma: también enciende vibrador */
 function triggerFwdAlarm(){
   fwdState = 'alarm';
   fwdTimerPill.style.display = 'inline-flex';
-  fwdTimerPill.className = 'pill alarm blink'; // rojo + parpadeo
+  fwdTimerPill.className = 'pill alarm blink';
   fwdTimerPill.textContent = `¡Muy adelante! • 10s`;
 
   // Encender vibrador en la LilyGO
@@ -650,7 +720,7 @@ function updateFwdAlarmElapsed(elapsedMs){
   fwdTimerPill.textContent = `¡Muy adelante! • ${s}s`;
 }
 
-/* ← MODIFICADA: ahora también apaga vibrador */
+/* Al resetear la alerta: apaga vibrador */
 function resetFwdAlert(){
   fwdState = 'idle';
   fwdEnterAt = 0;
@@ -700,7 +770,7 @@ function computeProfile(){
 
   const lrAbs = Math.abs(lr), fbAbs = Math.abs(fb);
 
-  // UMBRALES (holgados)
+  // UMBRALES
   const TH_SOFT = 0.25, TH_STRONG = 0.50;
 
   let txtLRv = 'Centro';
@@ -739,7 +809,7 @@ function computeProfile(){
   })();
   setConclusion(conclusion+dir, txtLRv+' • '+txtFBv, badgeKind);
 
-  // Alarma: 10 s en “Muy adelante”
+  // Alarma 10s “Muy adelante”
   const nowMs = performance.now();
   if (fb > TH_STRONG) {
     if (fwdState === 'idle') {
@@ -759,7 +829,6 @@ function computeProfile(){
       updateFwdAlarmElapsed(elapsed);
     }
   } else if (fb <= TH_SOFT) {
-    // salir solo tras 1.5s fuera de “Muy adelante”
     if (fwdState === 'warn' || fwdState === 'alarm') {
       if (fwdExitAt === 0) fwdExitAt = nowMs;
       if (nowMs - fwdExitAt >= EXIT_DEBOUNCE) {
@@ -770,7 +839,6 @@ function computeProfile(){
       }
     }
   } else {
-    // zona intermedia: mantener estado
     if (fwdState === 'warn') showFwdWarn(nowMs - fwdEnterAt);
     if (fwdState === 'alarm') updateFwdAlarmElapsed(nowMs - fwdEnterAt);
   }
@@ -824,7 +892,7 @@ function drawCoP(x,y,hasLoad){
   ctx.fillText('S4', x0+tw+gap+8, y0+th+gap+14);
 }
 
-/* ===== Resize (charts + mapa + cop) ===== */
+/* ===== Resize ===== */
 function resizeAllCanvases(){
   sensors.forEach(s=>{
     if(!s.cvs) return;
@@ -869,11 +937,15 @@ function markHeatDirty(){ if(currentView==='heatmap') heatDirty = true; }
 function markProfileDirty(){ if(currentView==='profile') profileDirty = true; }
 
 /* ===== Vistas ===== */
-function setActive(btn){ [btnProfile,btnDashboard,btnHeatmap].forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+function setActive(btn){
+  [btnProfile,btnDashboard,btnHeatmap,btnGuide].forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
 function showProfile(){
   profileSec.style.display='block';
   dashboardSec.style.display='none';
   heatmapSection.style.display='none';
+  guideSec.style.display='none';
   currentView='profile'; setActive(btnProfile);
   resizeAllCanvases(); profileDirty=true;
 }
@@ -881,6 +953,7 @@ function showDashboard(){
   profileSec.style.display='none';
   dashboardSec.style.display='';
   heatmapSection.style.display='none';
+  guideSec.style.display='none';
   currentView='dashboard'; setActive(btnDashboard);
   resizeAllCanvases();
 }
@@ -888,8 +961,17 @@ function showHeatmap(){
   profileSec.style.display='none';
   dashboardSec.style.display='none';
   heatmapSection.style.display='block';
+  guideSec.style.display='none';
   currentView='heatmap'; setActive(btnHeatmap);
   resizeAllCanvases(); drawHeatmap(true);
+}
+function showGuide(){
+  profileSec.style.display='none';
+  dashboardSec.style.display='none';
+  heatmapSection.style.display='none';
+  guideSec.style.display='block';
+  currentView='guide'; setActive(btnGuide);
+  resizeAllCanvases();
 }
 
 /* ===== FX Portada: blobs ===== */
@@ -954,7 +1036,7 @@ function gotoApp(){
     s.lastHzTs=now; s.samples=0; s.min=Infinity; s.max=-Infinity; s.buf.fill(0);
     s.kg=0; s.vkg=0; s.dRecent.length=0;
   });
-  showProfile(); // Perfil primero
+  showProfile();
 }
 function goLogout(){
   disconnectWS(); stopDemo();
@@ -982,9 +1064,10 @@ passEl.addEventListener('keyup', (e)=>{
 userEl.addEventListener('keyup', (e)=>{ if(e.key==='Enter') passEl.focus(); });
 
 // Nav
-btnProfile.onclick = showProfile;
+btnProfile.onclick   = showProfile;
 btnDashboard.onclick = showDashboard;
-btnHeatmap.onclick = showHeatmap;
+btnHeatmap.onclick   = showHeatmap;
+btnGuide.onclick     = showGuide;
 
 // Conexión
 btnConnect.onclick=()=>{ stopDemo(); connectWS(); };
@@ -1030,8 +1113,9 @@ function renderUI(){
 setupFX();
 tickFX();
 
-/* ===== Perfil invalidation (segunda definición, se mantiene igual que tu código) ===== */
+/* (Duplicado intencional de markProfileDirty se mantiene igual que en tu versión)
 function markProfileDirty(){ if(currentView==='profile') profileDirty = true; }
+*/
 </script>
 </body>
 </html>
